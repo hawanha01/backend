@@ -1,56 +1,89 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
   Column,
-  CreateDateColumn,
-  UpdateDateColumn,
+  OneToMany,
+  Index,
+  BeforeInsert,
+  BeforeUpdate,
 } from 'typeorm';
+import { UserStore } from '../../user-store/entity/user-store.entity';
+import { BaseEntity } from '../../../database/entity/base.entity';
 
 @Entity('users')
-export class User {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column({ type: 'varchar', length: 255, unique: true })
+@Index(['email'], { unique: true })
+@Index(['username'], { unique: true })
+export class User extends BaseEntity {
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: false,
+    name: 'email',
+    unique: true,
+  })
   email: string;
 
-  @Column({ type: 'varchar', length: 100, unique: true })
+  @Column({
+    type: 'varchar',
+    length: 100,
+    nullable: false,
+    name: 'username',
+    unique: true,
+  })
   username: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: 255, nullable: false, name: 'password' })
   password: string;
 
-  @Column({ type: 'varchar', length: 500, nullable: true })
+  @Column({
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+    name: 'refresh_token',
+  })
   refreshToken: string;
 
-  @Column({ type: 'varchar', length: 50, default: 'store_owner' })
+  @Column({
+    type: 'varchar',
+    length: 50,
+    nullable: false,
+    default: 'store_owner',
+    name: 'role',
+  })
   role: string;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: false, name: 'first_name' })
   firstName: string;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: false, name: 'last_name' })
   lastName: string;
 
-  @Column({ type: 'varchar', length: 20, nullable: true })
+  @Column({ type: 'varchar', length: 510, nullable: false, name: 'full_name' })
+  fullName: string;
+
+  @Column({ type: 'varchar', length: 20, nullable: false, name: 'phone' })
   phone: string;
 
-  @Column({ type: 'varchar', length: 500, nullable: true })
+  @Column({ type: 'varchar', length: 500, nullable: true, name: 'avatar' })
   avatar: string;
 
-  @Column({ type: 'boolean', default: true })
-  isActive: boolean;
-
-  @Column({ type: 'boolean', default: false })
+  @Column({
+    type: 'boolean',
+    nullable: false,
+    default: false,
+    name: 'is_email_verified',
+  })
   isEmailVerified: boolean;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamp', nullable: true, name: 'last_login_at' })
   lastLoginAt: Date;
 
-  @CreateDateColumn()
-  createdAt: Date;
+  @OneToMany(() => UserStore, (userStore) => userStore.user, { cascade: true })
+  userStores: UserStore[];
 
-  @UpdateDateColumn()
-  updatedAt: Date;
+  @BeforeInsert()
+  @BeforeUpdate()
+  updateFullName() {
+    const parts = [this.firstName, this.lastName].filter(Boolean);
+    this.fullName = parts.length > 0 ? parts.join(' ').trim() : '';
+  }
 }
-
