@@ -8,10 +8,12 @@ import {
 } from 'typeorm';
 import { UserStore } from '../../user-store/entity/user-store.entity';
 import { BaseEntity } from '../../../database/entity/base.entity';
+import { Role } from '../enum/role.enum';
 
 @Entity('users')
 @Index(['email'], { unique: true })
 @Index(['username'], { unique: true })
+@Index(['role'])
 export class User extends BaseEntity {
   @Column({
     type: 'varchar',
@@ -46,10 +48,10 @@ export class User extends BaseEntity {
     type: 'varchar',
     length: 50,
     nullable: false,
-    default: 'store_owner',
+    default: Role.STORE_OWNER,
     name: 'role',
   })
-  role: string;
+  role: Role;
 
   @Column({ type: 'varchar', length: 255, nullable: false, name: 'first_name' })
   firstName: string;

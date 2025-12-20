@@ -34,6 +34,7 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/typeorm": "^11.0.0",
+    "argon2": "^0.31.2",
     "dotenv": "^17.2.3",
     "joi": "^18.0.2",
     "pg": "^8.16.3",

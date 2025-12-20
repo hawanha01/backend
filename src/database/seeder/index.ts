@@ -5,6 +5,7 @@
  */
 
 export { PermissionSeeder } from './permission.seeder';
+export { AdminSeeder } from './admin.seeder';
 
 // Add more seeders here as they are created
 // export { UserSeeder } from './user.seeder';

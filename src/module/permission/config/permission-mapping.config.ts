@@ -6,6 +6,29 @@ import { PermissionAction } from '../enum/permission-action.enum';
  * This defines which actions are valid for each permission code
  */
 export const PERMISSION_CODE_ACTION_MAPPING: Record<PermissionCode, PermissionAction[]> = {
+  // Admin permissions
+  [PermissionCode.ADMIN_MANAGE]: [
+    PermissionAction.READ,
+    PermissionAction.CREATE,
+    PermissionAction.UPDATE,
+    PermissionAction.DELETE,
+    PermissionAction.MANAGE,
+  ],
+  [PermissionCode.ADMIN_CREATE_STORE_OWNER]: [PermissionAction.CREATE],
+  [PermissionCode.ADMIN_MANAGE_STORE_OWNERS]: [
+    PermissionAction.READ,
+    PermissionAction.UPDATE,
+    PermissionAction.DELETE,
+    PermissionAction.MANAGE,
+  ],
+  [PermissionCode.ADMIN_VIEW_ALL_STORES]: [PermissionAction.READ, PermissionAction.VIEW],
+  [PermissionCode.ADMIN_MANAGE_SYSTEM]: [
+    PermissionAction.READ,
+    PermissionAction.UPDATE,
+    PermissionAction.SETTINGS,
+    PermissionAction.MANAGE,
+  ],
+
   // Product permissions
   [PermissionCode.PRODUCTS_MANAGE]: [
     PermissionAction.CREATE,
