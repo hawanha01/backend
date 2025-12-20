@@ -1,4 +1,11 @@
 export enum PermissionCode {
+  // Admin permissions
+  ADMIN_MANAGE = 'admin.manage',
+  ADMIN_CREATE_STORE_OWNER = 'admin.create_store_owner',
+  ADMIN_MANAGE_STORE_OWNERS = 'admin.manage_store_owners',
+  ADMIN_VIEW_ALL_STORES = 'admin.view_all_stores',
+  ADMIN_MANAGE_SYSTEM = 'admin.manage_system',
+
   // Product permissions
   PRODUCTS_MANAGE = 'products.manage',
   PRODUCTS_CREATE = 'products.create',

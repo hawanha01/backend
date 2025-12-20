@@ -24,5 +24,13 @@ export const config = {
     password: value.DB_PASSWORD,
     database: value.DB_DATABASE,
   },
+  admin: {
+    email: value.ADMIN_EMAIL,
+    username: value.ADMIN_USERNAME,
+    password: value.ADMIN_PASSWORD,
+    firstName: value.ADMIN_FIRST_NAME,
+    lastName: value.ADMIN_LAST_NAME,
+    phone: value.ADMIN_PHONE,
+  },
 };
 

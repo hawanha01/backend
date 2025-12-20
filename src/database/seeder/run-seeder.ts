@@ -1,4 +1,5 @@
 import { PermissionSeeder } from './permission.seeder';
+import { AdminSeeder } from './admin.seeder';
 
 /**
  * General Seeder Runner
@@ -21,6 +22,11 @@ const seeders: Record<string, SeederConfig> = {
     name: 'permissions',
     seeder: new PermissionSeeder(),
     description: 'Seed permission codes and their allowed actions',
+  },
+  admin: {
+    name: 'admin',
+    seeder: new AdminSeeder(),
+    description: 'Seed default admin user',
   },
   // Add more seeders here as they are created
   // users: {

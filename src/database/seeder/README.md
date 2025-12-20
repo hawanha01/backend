@@ -26,7 +26,50 @@ npm run seeder list
 npm run seeder --help
 ```
 
+## Prerequisites
+
+**Required package:** `argon2` for password hashing (better than bcrypt, works well for JWT tokens too).
+
+Install if not already installed:
+```bash
+npm install argon2
+```
+
 ## Available Seeders
+
+### Admin Seeder
+
+The admin seeder creates the default admin user with ADMIN role.
+
+**Usage:**
+```bash
+npm run db:seed admin
+npm run db:seed admin:clear
+```
+
+**Configuration:**
+The seeder uses validated environment variables from `src/config/env.ts`:
+- `ADMIN_EMAIL` - Admin email (validated as email, default: `dev.hamza.010@gmail.com`)
+- `ADMIN_USERNAME` - Admin username (validated: 3-100 chars, default: `hawanha1`)
+- `ADMIN_PASSWORD` - Admin password (validated: min 8 chars, default: `Admin@123`)
+- `ADMIN_FIRST_NAME` - Admin first name (validated: max 255 chars, default: `Admin`)
+- `ADMIN_LAST_NAME` - Admin last name (validated: max 255 chars, default: `User`)
+- `ADMIN_PHONE` - Admin phone (validated: max 20 chars, default: `+1234567890`)
+
+All environment variables are validated through Joi schema before use.
+
+**Important Notes:**
+- Only this seeder should create admin users
+- Admin users should not be manually created
+- The seeder is idempotent - it won't create duplicate admins
+- **Change the default password after first login!**
+
+**How It Works:**
+1. Loads and validates environment variables through `config.admin`
+2. Checks if an admin user already exists (by role or email/username)
+3. Hashes the password using argon2 (argon2id - best for passwords and JWT tokens)
+4. Creates the admin user with ADMIN role
+5. Sets `isEmailVerified` to true
 
 ### Permission Seeder
 
