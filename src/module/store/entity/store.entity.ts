@@ -1,5 +1,7 @@
 import { Entity, Column, OneToMany, Index } from 'typeorm';
 import { UserStore } from '../../user-store/entity/user-store.entity';
+import { Product } from '../../product/entity/product.entity';
+import { Review } from '../../review/entity/review.entity';
 import { BaseEntity } from '../../../database/entity/base.entity';
 
 @Entity('stores')
@@ -53,18 +55,12 @@ export class Store extends BaseEntity {
   @Column({ type: 'varchar', nullable: false, name: 'website', length: 500 })
   website: string;
 
-  @Column({
-    type: 'decimal',
-    precision: 5,
-    scale: 2,
-    default: 0,
-    name: 'rating',
-  })
-  rating: number;
-
-  @Column({ type: 'int', default: 0, name: 'total_reviews' })
-  totalReviews: number;
-
   @OneToMany(() => UserStore, (userStore) => userStore.store, { cascade: true })
   userStores: UserStore[];
+
+  @OneToMany(() => Product, (product) => product.store, { cascade: true })
+  products: Product[];
+
+  @OneToMany(() => Review, (review) => review.store, { cascade: true })
+  reviews: Review[];
 }
