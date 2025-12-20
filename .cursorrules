@@ -1,0 +1,1040 @@
+---
+description: "NestJS backend standards: Exception handling, DTOs, validation, testing, Swagger, and strict TypeScript types"
+alwaysApply: true
+---
+
+# NestJS Backend Development Rules
+
+## Core Principles
+
+1. **Type Safety First**: Everything must have proper TypeScript types - no `any` or untyped code
+2. **Centralized Exception Handling**: One global exception filter handles all exceptions
+3. **DTOs Everywhere**: All endpoints use DTOs, including query parameters
+4. **Comprehensive Testing**: Minimum 4 test cases per endpoint (controller + service, positive + negative)
+5. **Swagger Documentation**: All endpoints must be documented with Swagger/OpenAPI
+6. **Validation**: Use class-validator and class-transformer for all DTOs
+7. **Guards & Pipes**: Proper use of guards, pipes, and interceptors
+8. **Generic Types**: Use generic types for reusable patterns (PaginatedResponse, etc.)
+
+## TypeScript Standards
+
+### Type Requirements
+
+- **No `any` types** - Everything must have explicit types
+- **No untyped code** - All functions, variables, and parameters must be typed
+- **Generic Types**: Use generics for reusable patterns
+- **API Response Types**: Every API response must have a defined interface/type
+- **DTO Types**: All DTOs must be classes with validation decorators
+
+### Type Examples
+
+```typescript
+// ✅ CORRECT: Properly typed with generics
+interface PaginatedResponse<T> {
+  data: T[];
+  pagination: PaginationMeta;
+  message: string;
+  status: number;
+}
+
+// ✅ CORRECT: Typed function
+async function findAll<T>(
+  page: number,
+  limit: number,
+): Promise<PaginatedResponse<T>> {
+  // implementation
+}
+
+// ❌ WRONG: Untyped or any
+const data: any = ...; // Never use any
+function process(data) { ... } // Must type parameters
+const response = await this.service.get(); // Must type response
+```
+
+## Exception Handling
+
+### Global Exception Filter
+
+**CRITICAL**: One centralized exception filter handles ALL exceptions.
+
+```typescript
+// common/filters/http-exception.filter.ts
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+import { Response } from 'express';
+
+@Catch()
+export class AllExceptionsFilter implements ExceptionFilter {
+  catch(exception: unknown, host: ArgumentsHost): void {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
+
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message = 'Internal server error';
+    let errors: string[] = [];
+
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      const exceptionResponse = exception.getResponse();
+      
+      if (typeof exceptionResponse === 'string') {
+        message = exceptionResponse;
+      } else if (typeof exceptionResponse === 'object') {
+        const responseObj = exceptionResponse as {
+          message?: string | string[];
+          errors?: string[];
+        };
+        message = Array.isArray(responseObj.message)
+          ? responseObj.message[0]
+          : responseObj.message || message;
+        errors = responseObj.errors || [];
+      }
+    } else if (exception instanceof Error) {
+      message = exception.message;
+    }
+
+    const errorResponse = {
+      statusCode: status,
+      timestamp: new Date().toISOString(),
+      path: request.url,
+      message,
+      errors: errors.length > 0 ? errors : undefined,
+    };
+
+    response.status(status).json(errorResponse);
+  }
+}
+```
+
+### Exception Filter Registration
+
+```typescript
+// main.ts
+import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  
+  // Register global exception filter
+  app.useGlobalFilters(new AllExceptionsFilter());
+  
+  await app.listen(3000);
+}
+```
+
+### Custom Exceptions
+
+```typescript
+// common/exceptions/custom.exception.ts
+export class CustomException extends HttpException {
+  constructor(
+    message: string,
+    statusCode: HttpStatus = HttpStatus.BAD_REQUEST,
+    errors?: string[],
+  ) {
+    super(
+      {
+        message,
+        errors,
+      },
+      statusCode,
+    );
+  }
+}
+```
+
+## DTOs (Data Transfer Objects)
+
+### DTO Requirements
+
+- **All endpoints must use DTOs** - No raw request bodies or query parameters
+- **Query parameters must use DTOs** - Create QueryDTO classes
+- **Validation decorators required** - Use class-validator
+- **Type safety** - All DTOs must be classes, not interfaces
+- **Swagger decorators** - All DTOs must have @ApiProperty decorators
+
+### DTO Examples
+
+```typescript
+// ✅ CORRECT: Properly typed DTO with validation
+import { IsString, IsEmail, IsOptional, MinLength, MaxLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+export class CreateUserDto {
+  @ApiProperty({ example: 'john.doe@example.com', description: 'User email' })
+  @IsEmail({}, { message: 'Invalid email format' })
+  @IsString()
+  email: string;
+
+  @ApiProperty({ example: 'John Doe', description: 'User full name' })
+  @IsString()
+  @MinLength(2, { message: 'Name must be at least 2 characters' })
+  @MaxLength(100, { message: 'Name must not exceed 100 characters' })
+  name: string;
+}
+
+// ✅ CORRECT: Query parameters DTO
+export class PaginationQueryDto {
+  @ApiPropertyOptional({ example: 1, default: 1, minimum: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: 'Page must be an integer' })
+  @Min(1, { message: 'Page must be at least 1' })
+  page?: number = 1;
+
+  @ApiPropertyOptional({ example: 10, default: 10, minimum: 1, maximum: 100 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: 'Limit must be an integer' })
+  @Min(1, { message: 'Limit must be at least 1' })
+  @Max(100, { message: 'Limit must not exceed 100' })
+  limit?: number = 10;
+
+  @ApiPropertyOptional({ example: 'name', description: 'Sort field' })
+  @IsOptional()
+  @IsString()
+  sortBy?: string;
+
+  @ApiPropertyOptional({ example: 'asc', enum: ['asc', 'desc'] })
+  @IsOptional()
+  @IsEnum(['asc', 'desc'])
+  sortOrder?: 'asc' | 'desc' = 'asc';
+}
+
+// ❌ WRONG: No DTO, using raw query parameters
+@Get()
+async findAll(@Query('page') page: number) { ... } // Must use DTO
+
+// ❌ WRONG: Untyped DTO
+export class CreateUserDto {
+  email: any; // Must type everything
+}
+```
+
+### DTO File Organization
+
+```
+src/
+  ├── module/
+  │   └── user/
+  │       ├── dto/
+  │       │   ├── create-user.dto.ts
+  │       │   ├── update-user.dto.ts
+  │       │   ├── user-query.dto.ts
+  │       │   └── user-response.dto.ts
+```
+
+## Validation Pipes
+
+### Global Validation Pipe
+
+```typescript
+// main.ts
+import { ValidationPipe } from '@nestjs/common';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  
+  // Global validation pipe
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true, // Strip properties that don't have decorators
+      forbidNonWhitelisted: true, // Throw error if non-whitelisted properties are present
+      transform: true, // Automatically transform payloads to DTO instances
+      transformOptions: {
+        enableImplicitConversion: true, // Enable implicit type conversion
+      },
+    }),
+  );
+  
+  await app.listen(3000);
+}
+```
+
+## Guards
+
+### Authentication Guard Example
+
+```typescript
+// common/guards/jwt-auth.guard.ts
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { Observable } from 'rxjs';
+
+@Injectable()
+export class JwtAuthGuard implements CanActivate {
+  canActivate(
+    context: ExecutionContext,
+  ): boolean | Promise<boolean> | Observable<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const token = this.extractTokenFromHeader(request);
+    
+    if (!token) {
+      throw new UnauthorizedException('Token not provided');
+    }
+    
+    // Validate token logic
+    return true;
+  }
+
+  private extractTokenFromHeader(request: Request): string | undefined {
+    const [type, token] = request.headers['authorization']?.split(' ') ?? [];
+    return type === 'Bearer' ? token : undefined;
+  }
+}
+```
+
+### Role Guard Example
+
+```typescript
+// common/guards/roles.guard.ts
+import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { ROLES_KEY } from '../decorators/roles.decorator';
+
+@Injectable()
+export class RolesGuard implements CanActivate {
+  constructor(private reflector: Reflector) {}
+
+  canActivate(context: ExecutionContext): boolean {
+    const requiredRoles = this.reflector.getAllAndOverride<string[]>(
+      ROLES_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+    
+    if (!requiredRoles) {
+      return true;
+    }
+    
+    const { user } = context.switchToHttp().getRequest();
+    return requiredRoles.some((role) => user.roles?.includes(role));
+  }
+}
+```
+
+## Interceptors & Transformers
+
+### Response Transformer Interceptor
+
+```typescript
+// common/interceptors/transform.interceptor.ts
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+} from '@nestjs/common';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+
+export interface Response<T> {
+  data: T;
+  message: string;
+  status: number;
+}
+
+@Injectable()
+export class TransformInterceptor<T>
+  implements NestInterceptor<T, Response<T>>
+{
+  intercept(
+    context: ExecutionContext,
+    next: CallHandler,
+  ): Observable<Response<T>> {
+    return next.handle().pipe(
+      map((data) => ({
+        data,
+        message: 'Success',
+        status: context.switchToHttp().getResponse().statusCode,
+      })),
+    );
+  }
+}
+```
+
+### Pagination Response Wrapper
+
+```typescript
+// common/interfaces/paginated-response.interface.ts
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: PaginationMeta;
+  message: string;
+  status: number;
+}
+
+// common/utils/pagination.util.ts
+export function createPaginatedResponse<T>(
+  data: T[],
+  total: number,
+  page: number,
+  limit: number,
+): PaginatedResponse<T> {
+  return {
+    data,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+    message: 'Success',
+    status: 200,
+  };
+}
+```
+
+## Controller Standards
+
+### Controller Requirements
+
+- **All endpoints must be documented** with Swagger decorators
+- **Use DTOs for all parameters** (body, query, params)
+- **Proper HTTP status codes**
+- **Typed responses**
+- **Use guards and interceptors**
+
+### Controller Example
+
+```typescript
+// ✅ CORRECT: Properly typed controller with DTOs and Swagger
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { UserQueryDto } from './dto/user-query.dto';
+import { UserResponseDto } from './dto/user-response.dto';
+import { PaginatedResponse } from '../common/interfaces/paginated-response.interface';
+import { UserService } from './user.service';
+
+@ApiTags('users')
+@Controller('users')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@ApiBearerAuth()
+export class UserController {
+  constructor(private readonly userService: UserService) {}
+
+  @Post()
+  @Roles('admin')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a new user' })
+  @ApiResponse({
+    status: 201,
+    description: 'User created successfully',
+    type: UserResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  async create(
+    @Body() createUserDto: CreateUserDto,
+  ): Promise<UserResponseDto> {
+    return this.userService.create(createUserDto);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Get all users with pagination' })
+  @ApiResponse({
+    status: 200,
+    description: 'Users retrieved successfully',
+    type: PaginatedResponse<UserResponseDto>,
+  })
+  async findAll(
+    @Query() query: UserQueryDto,
+  ): Promise<PaginatedResponse<UserResponseDto>> {
+    return this.userService.findAll(query);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get user by ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'User found',
+    type: UserResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async findOne(@Param('id') id: string): Promise<UserResponseDto> {
+    return this.userService.findOne(id);
+  }
+
+  @Put(':id')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Update user' })
+  @ApiResponse({
+    status: 200,
+    description: 'User updated successfully',
+    type: UserResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async update(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ): Promise<UserResponseDto> {
+    return this.userService.update(id, updateUserDto);
+  }
+
+  @Delete(':id')
+  @Roles('admin')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete user' })
+  @ApiResponse({ status: 204, description: 'User deleted successfully' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async remove(@Param('id') id: string): Promise<void> {
+    return this.userService.remove(id);
+  }
+}
+```
+
+## Service Standards
+
+### Service Requirements
+
+- **All methods must be typed** - No untyped returns or parameters
+- **Use generic types** for reusable patterns
+- **Proper error handling** - Throw appropriate exceptions
+- **No `any` types**
+
+### Service Example
+
+```typescript
+// ✅ CORRECT: Properly typed service
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { UserQueryDto } from './dto/user-query.dto';
+import { UserResponseDto } from './dto/user-response.dto';
+import { User } from './entity/user.entity';
+import { PaginatedResponse } from '../common/interfaces/paginated-response.interface';
+import { createPaginatedResponse } from '../common/utils/pagination.util';
+
+@Injectable()
+export class UserService {
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) {}
+
+  async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
+    const user = this.userRepository.create(createUserDto);
+    const savedUser = await this.userRepository.save(user);
+    return this.toResponseDto(savedUser);
+  }
+
+  async findAll(
+    query: UserQueryDto,
+  ): Promise<PaginatedResponse<UserResponseDto>> {
+    const { page = 1, limit = 10, sortBy, sortOrder } = query;
+    const skip = (page - 1) * limit;
+
+    const queryBuilder = this.userRepository.createQueryBuilder('user');
+
+    if (sortBy) {
+      queryBuilder.orderBy(`user.${sortBy}`, sortOrder || 'ASC');
+    }
+
+    const [users, total] = await queryBuilder
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    const userDtos = users.map((user) => this.toResponseDto(user));
+
+    return createPaginatedResponse(userDtos, total, page, limit);
+  }
+
+  async findOne(id: string): Promise<UserResponseDto> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+    
+    return this.toResponseDto(user);
+  }
+
+  async update(
+    id: string,
+    updateUserDto: UpdateUserDto,
+  ): Promise<UserResponseDto> {
+    const user = await this.findOne(id);
+    Object.assign(user, updateUserDto);
+    const updatedUser = await this.userRepository.save(user);
+    return this.toResponseDto(updatedUser);
+  }
+
+  async remove(id: string): Promise<void> {
+    const user = await this.findOne(id);
+    await this.userRepository.remove(user);
+  }
+
+  private toResponseDto(user: User): UserResponseDto {
+    const { password, ...result } = user;
+    return result;
+  }
+}
+```
+
+## Testing Standards
+
+### Test Requirements
+
+**CRITICAL**: Each endpoint must have minimum 4 test cases:
+1. **Controller Positive Test** - Successful request
+2. **Controller Negative Test** - Error scenarios (validation, not found, unauthorized, etc.)
+3. **Service Positive Test** - Successful business logic
+4. **Service Negative Test** - Error scenarios (not found, business rule violations, etc.)
+
+**Additional test cases should cover:**
+- Edge cases
+- Boundary conditions
+- Different user roles/permissions
+- Invalid data formats
+- Database errors
+- Network errors
+
+### Test File Organization
+
+```
+src/
+  ├── module/
+  │   └── user/
+  │       ├── user.controller.spec.ts
+  │       ├── user.service.spec.ts
+  │       └── user.entity.spec.ts
+```
+
+### Controller Test Example
+
+```typescript
+// user.controller.spec.ts
+import { Test, TestingModule } from '@nestjs/testing';
+import { UserController } from './user.controller';
+import { UserService } from './user.service';
+import { CreateUserDto } from './dto/create-user.dto';
+import { NotFoundException, UnauthorizedException } from '@nestjs/common';
+
+describe('UserController', () => {
+  let controller: UserController;
+  let service: UserService;
+
+  const mockUserService = {
+    create: jest.fn(),
+    findAll: jest.fn(),
+    findOne: jest.fn(),
+    update: jest.fn(),
+    remove: jest.fn(),
+  };
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [UserController],
+      providers: [
+        {
+          provide: UserService,
+          useValue: mockUserService,
+        },
+      ],
+    }).compile();
+
+    controller = module.get<UserController>(UserController);
+    service = module.get<UserService>(UserService);
+  });
+
+  describe('create', () => {
+    // ✅ Positive test case
+    it('should create a user successfully', async () => {
+      const createUserDto: CreateUserDto = {
+        email: 'test@example.com',
+        name: 'Test User',
+      };
+      const expectedResult = { id: '1', ...createUserDto };
+
+      mockUserService.create.mockResolvedValue(expectedResult);
+
+      const result = await controller.create(createUserDto);
+
+      expect(result).toEqual(expectedResult);
+      expect(service.create).toHaveBeenCalledWith(createUserDto);
+    });
+
+    // ✅ Negative test case - Validation error
+    it('should throw BadRequestException for invalid email', async () => {
+      const createUserDto: CreateUserDto = {
+        email: 'invalid-email',
+        name: 'Test User',
+      };
+
+      await expect(controller.create(createUserDto)).rejects.toThrow();
+    });
+
+    // ✅ Negative test case - Unauthorized
+    it('should throw UnauthorizedException when not authenticated', async () => {
+      // Test guard behavior
+    });
+  });
+
+  describe('findOne', () => {
+    // ✅ Positive test case
+    it('should return a user by id', async () => {
+      const userId = '1';
+      const expectedUser = { id: userId, email: 'test@example.com' };
+
+      mockUserService.findOne.mockResolvedValue(expectedUser);
+
+      const result = await controller.findOne(userId);
+
+      expect(result).toEqual(expectedUser);
+      expect(service.findOne).toHaveBeenCalledWith(userId);
+    });
+
+    // ✅ Negative test case - Not found
+    it('should throw NotFoundException when user not found', async () => {
+      const userId = '999';
+
+      mockUserService.findOne.mockRejectedValue(
+        new NotFoundException(`User with ID ${userId} not found`),
+      );
+
+      await expect(controller.findOne(userId)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  // Add more test cases for other endpoints...
+});
+```
+
+### Service Test Example
+
+```typescript
+// user.service.spec.ts
+import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { UserService } from './user.service';
+import { User } from './entity/user.entity';
+import { CreateUserDto } from './dto/create-user.dto';
+import { NotFoundException } from '@nestjs/common';
+
+describe('UserService', () => {
+  let service: UserService;
+  let repository: Repository<User>;
+
+  const mockRepository = {
+    create: jest.fn(),
+    save: jest.fn(),
+    findOne: jest.fn(),
+    find: jest.fn(),
+    remove: jest.fn(),
+    createQueryBuilder: jest.fn(),
+  };
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        UserService,
+        {
+          provide: getRepositoryToken(User),
+          useValue: mockRepository,
+        },
+      ],
+    }).compile();
+
+    service = module.get<UserService>(UserService);
+    repository = module.get<Repository<User>>(getRepositoryToken(User));
+  });
+
+  describe('create', () => {
+    // ✅ Positive test case
+    it('should create a user successfully', async () => {
+      const createUserDto: CreateUserDto = {
+        email: 'test@example.com',
+        name: 'Test User',
+      };
+      const savedUser = { id: '1', ...createUserDto };
+
+      mockRepository.create.mockReturnValue(createUserDto);
+      mockRepository.save.mockResolvedValue(savedUser);
+
+      const result = await service.create(createUserDto);
+
+      expect(result).toEqual(savedUser);
+      expect(repository.create).toHaveBeenCalledWith(createUserDto);
+      expect(repository.save).toHaveBeenCalled();
+    });
+
+    // ✅ Negative test case - Database error
+    it('should throw error when database save fails', async () => {
+      const createUserDto: CreateUserDto = {
+        email: 'test@example.com',
+        name: 'Test User',
+      };
+
+      mockRepository.create.mockReturnValue(createUserDto);
+      mockRepository.save.mockRejectedValue(new Error('Database error'));
+
+      await expect(service.create(createUserDto)).rejects.toThrow();
+    });
+  });
+
+  describe('findOne', () => {
+    // ✅ Positive test case
+    it('should return a user by id', async () => {
+      const userId = '1';
+      const user = { id: userId, email: 'test@example.com' };
+
+      mockRepository.findOne.mockResolvedValue(user);
+
+      const result = await service.findOne(userId);
+
+      expect(result).toEqual(user);
+      expect(repository.findOne).toHaveBeenCalledWith({ where: { id: userId } });
+    });
+
+    // ✅ Negative test case - Not found
+    it('should throw NotFoundException when user not found', async () => {
+      const userId = '999';
+
+      mockRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.findOne(userId)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  // Add more test cases...
+});
+```
+
+## Swagger Documentation
+
+### Swagger Setup
+
+```typescript
+// main.ts
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  const config = new DocumentBuilder()
+    .setTitle('API Documentation')
+    .setDescription('The API description')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .addTag('users')
+    .addTag('products')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
+
+  await app.listen(3000);
+}
+```
+
+### Swagger Decorators
+
+```typescript
+// ✅ CORRECT: Fully documented endpoint
+@ApiTags('users')
+@ApiOperation({ summary: 'Get all users', description: 'Retrieve paginated list of users' })
+@ApiResponse({
+  status: 200,
+  description: 'Users retrieved successfully',
+  type: PaginatedResponse<UserResponseDto>,
+})
+@ApiResponse({ status: 401, description: 'Unauthorized' })
+@ApiResponse({ status: 403, description: 'Forbidden' })
+@Get()
+async findAll(@Query() query: UserQueryDto) { ... }
+```
+
+## Generic Types & Wrapper Functions
+
+### Paginated Response Wrapper
+
+```typescript
+// common/utils/pagination.util.ts
+import { PaginatedResponse, PaginationMeta } from '../interfaces/paginated-response.interface';
+
+export function createPaginatedResponse<T>(
+  data: T[],
+  total: number,
+  page: number,
+  limit: number,
+): PaginatedResponse<T> {
+  return {
+    data,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+    message: 'Success',
+    status: 200,
+  };
+}
+```
+
+### Response Wrapper
+
+```typescript
+// common/utils/response.util.ts
+export interface ApiResponse<T> {
+  data: T;
+  message: string;
+  status: number;
+}
+
+export function createResponse<T>(
+  data: T,
+  message: string = 'Success',
+  status: number = 200,
+): ApiResponse<T> {
+  return {
+    data,
+    message,
+    status,
+  };
+}
+```
+
+## Checklist for New Endpoints
+
+### Controller Checklist
+
+- [ ] All endpoints have Swagger documentation (@ApiOperation, @ApiResponse)
+- [ ] All parameters use DTOs (body, query, params)
+- [ ] Proper HTTP status codes
+- [ ] Guards applied where needed
+- [ ] Typed return values
+- [ ] No `any` types
+- [ ] Minimum 4 test cases (positive/negative controller, positive/negative service)
+
+### Service Checklist
+
+- [ ] All methods are typed
+- [ ] Proper error handling with appropriate exceptions
+- [ ] Uses generic types where applicable
+- [ ] No `any` types
+- [ ] Minimum 4 test cases
+
+### DTO Checklist
+
+- [ ] All DTOs are classes (not interfaces)
+- [ ] Validation decorators applied
+- [ ] Swagger decorators (@ApiProperty) applied
+- [ ] Query parameters use DTOs
+- [ ] All properties are typed
+- [ ] No `any` types
+
+## File Organization
+
+```
+src/
+  ├── common/
+  │   ├── filters/
+  │   │   └── http-exception.filter.ts
+  │   ├── guards/
+  │   │   ├── jwt-auth.guard.ts
+  │   │   └── roles.guard.ts
+  │   ├── interceptors/
+  │   │   └── transform.interceptor.ts
+  │   ├── decorators/
+  │   │   └── roles.decorator.ts
+  │   ├── exceptions/
+  │   │   └── custom.exception.ts
+  │   ├── interfaces/
+  │   │   └── paginated-response.interface.ts
+  │   └── utils/
+  │       ├── pagination.util.ts
+  │       └── response.util.ts
+  ├── module/
+  │   └── user/
+  │       ├── dto/
+  │       │   ├── create-user.dto.ts
+  │       │   ├── update-user.dto.ts
+  │       │   ├── user-query.dto.ts
+  │       │   └── user-response.dto.ts
+  │       ├── entity/
+  │       │   └── user.entity.ts
+  │       ├── user.controller.ts
+  │       ├── user.controller.spec.ts
+  │       ├── user.service.ts
+  │       └── user.service.spec.ts
+```
+
+## Error Handling Best Practices
+
+```typescript
+// ✅ CORRECT: Proper exception handling
+if (!user) {
+  throw new NotFoundException(`User with ID ${id} not found`);
+}
+
+// ✅ CORRECT: Custom exception with details
+throw new BadRequestException({
+  message: 'Validation failed',
+  errors: ['Email is required', 'Name must be at least 2 characters'],
+});
+
+// ❌ WRONG: Generic error or untyped error
+throw new Error('Something went wrong'); // Use specific exceptions
+throw error; // Must type and handle properly
+```
+
+## Summary
+
+- **One global exception filter** handles all exceptions
+- **DTOs everywhere** - including query parameters
+- **Minimum 4 test cases** per endpoint (more scenarios encouraged)
+- **Swagger documentation** for all endpoints
+- **No `any` types** - everything must be typed
+- **Generic types** for reusable patterns
+- **Proper guards, pipes, and interceptors**
+- **Wrapper functions** for common response patterns
+
