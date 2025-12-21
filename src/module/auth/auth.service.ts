@@ -47,7 +47,7 @@ export class AuthService {
     }
 
     // If role is provided in headers, validate it matches user's role
-    if (role && user.role !== role) {
+    if (role && user.role !== (role as typeof user.role)) {
       throw new BadRequestException(
         `User role mismatch. Expected: ${role}, Found: ${user.role}`,
       );
@@ -66,7 +66,6 @@ export class AuthService {
 
     const accessSecret = config.jwt.accessSecret;
     const refreshSecret = config.jwt.refreshSecret;
-    const accessExpiresIn = config.jwt.accessExpiresIn || '15m';
     const refreshExpiresIn = config.jwt.refreshExpiresIn || '7d';
 
     if (!accessSecret || !refreshSecret) {

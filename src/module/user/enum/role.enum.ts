@@ -3,4 +3,3 @@ export enum Role {
   STORE_OWNER = 'store_owner',
   STORE_MANAGER = 'store_manager',
 }
-

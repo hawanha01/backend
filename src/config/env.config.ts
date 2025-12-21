@@ -1,6 +1,18 @@
 import { config } from './env';
 
-export default () => ({
+interface DatabaseConfig {
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  database: string;
+}
+
+interface ConfigReturn {
+  database: DatabaseConfig;
+}
+
+export default (): ConfigReturn => ({
   database: {
     host: config.database.host,
     port: config.database.port,
@@ -9,4 +21,3 @@ export default () => ({
     database: config.database.database,
   },
 });
-

@@ -7,9 +7,9 @@ import AppDataSource from '../../config/typeOrm.config';
 
 /**
  * Admin Seeder
- * 
+ *
  * This seeder creates the default admin user.
- * 
+ *
  * IMPORTANT: Only this seeder should create admin users.
  * Admin users should not be manually created.
  */
@@ -33,7 +33,16 @@ export class AdminSeeder {
       const userRepository = this.dataSource.getRepository(User);
 
       // Get validated admin credentials from config
-      const adminData = {
+      const adminData: {
+        email: string;
+        username: string;
+        password: string;
+        firstName: string;
+        lastName: string;
+        phone: string;
+        role: Role;
+        isEmailVerified: boolean;
+      } = {
         email: config.admin.email,
         username: config.admin.username,
         password: config.admin.password,
@@ -48,10 +57,7 @@ export class AdminSeeder {
 
       // Check if admin already exists by email or username
       const existingUser = await userRepository.findOne({
-        where: [
-          { email: adminData.email },
-          { username: adminData.username },
-        ],
+        where: [{ email: adminData.email }, { username: adminData.username }],
       });
 
       if (existingUser) {
@@ -72,7 +78,9 @@ export class AdminSeeder {
       });
 
       if (existingAdmin) {
-        console.log(`  ℹ️  An admin user already exists: ${existingAdmin.email}`);
+        console.log(
+          `  ℹ️  An admin user already exists: ${existingAdmin.email}`,
+        );
         console.log(`     Skipping admin creation.\n`);
         return;
       }
@@ -99,7 +107,9 @@ export class AdminSeeder {
       console.log(`     Email: ${admin.email}`);
       console.log(`     Username: ${admin.username}`);
       console.log(`     Role: ${admin.role}`);
-      console.log(`     ⚠️  Please change the default password after first login!\n`);
+      console.log(
+        `     ⚠️  Please change the default password after first login!\n`,
+      );
     } catch (error) {
       console.error('❌ Error seeding admin:', error);
       throw error;
@@ -159,4 +169,3 @@ if (require.main === module) {
       process.exit(1);
     });
 }
-

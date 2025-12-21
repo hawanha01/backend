@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { PermissionCode } from '../enum/permission-code.enum';
 import { PermissionAction } from '../enum/permission-action.enum';
 import {
-  PERMISSION_CODE_ACTION_MAPPING,
   getAllowedActionsForCode,
   isActionAllowedForCode,
   getCodesByResource,
@@ -77,4 +76,3 @@ export class PermissionHelperService {
     return Object.values(PermissionAction).includes(action as PermissionAction);
   }
 }
-

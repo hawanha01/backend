@@ -18,55 +18,131 @@ export enum OrderStatus {
 @Index(['buyerPhoneNumber'])
 @Index(['status'])
 export class Order extends BaseEntity {
-  @Column({ type: 'varchar', nullable: false, name: 'order_number', length: 100, unique: true })
+  @Column({
+    type: 'varchar',
+    nullable: false,
+    name: 'order_number',
+    length: 100,
+    unique: true,
+  })
   orderNumber: string;
 
   // Buyer details (stored directly in order for online orders)
   @Column({ type: 'varchar', nullable: false, name: 'buyer_name', length: 255 })
   buyerName: string;
 
-  @Column({ type: 'varchar', nullable: false, name: 'buyer_email', length: 255 })
+  @Column({
+    type: 'varchar',
+    nullable: false,
+    name: 'buyer_email',
+    length: 255,
+  })
   buyerEmail: string;
 
-  @Column({ type: 'varchar', nullable: false, name: 'buyer_phone_number', length: 20 })
+  @Column({
+    type: 'varchar',
+    nullable: false,
+    name: 'buyer_phone_number',
+    length: 20,
+  })
   buyerPhoneNumber: string;
 
   // Billing Address
-  @Column({ type: 'varchar', nullable: false, name: 'billing_address', length: 255 })
+  @Column({
+    type: 'varchar',
+    nullable: false,
+    name: 'billing_address',
+    length: 255,
+  })
   billingAddress: string;
 
-  @Column({ type: 'varchar', nullable: true, name: 'billing_address_line2', length: 255 })
+  @Column({
+    type: 'varchar',
+    nullable: true,
+    name: 'billing_address_line2',
+    length: 255,
+  })
   billingAddressLine2: string | null;
 
-  @Column({ type: 'varchar', nullable: false, name: 'billing_city', length: 100 })
+  @Column({
+    type: 'varchar',
+    nullable: false,
+    name: 'billing_city',
+    length: 100,
+  })
   billingCity: string;
 
-  @Column({ type: 'varchar', nullable: false, name: 'billing_state', length: 100 })
+  @Column({
+    type: 'varchar',
+    nullable: false,
+    name: 'billing_state',
+    length: 100,
+  })
   billingState: string;
 
-  @Column({ type: 'varchar', nullable: false, name: 'billing_zip_code', length: 20 })
+  @Column({
+    type: 'varchar',
+    nullable: false,
+    name: 'billing_zip_code',
+    length: 20,
+  })
   billingZipCode: string;
 
-  @Column({ type: 'varchar', nullable: false, name: 'billing_country', length: 100 })
+  @Column({
+    type: 'varchar',
+    nullable: false,
+    name: 'billing_country',
+    length: 100,
+  })
   billingCountry: string;
 
   // Shipping Address (can be different from billing)
-  @Column({ type: 'varchar', nullable: false, name: 'shipping_address', length: 255 })
+  @Column({
+    type: 'varchar',
+    nullable: false,
+    name: 'shipping_address',
+    length: 255,
+  })
   shippingAddress: string;
 
-  @Column({ type: 'varchar', nullable: true, name: 'shipping_address_line2', length: 255 })
+  @Column({
+    type: 'varchar',
+    nullable: true,
+    name: 'shipping_address_line2',
+    length: 255,
+  })
   shippingAddressLine2: string | null;
 
-  @Column({ type: 'varchar', nullable: false, name: 'shipping_city', length: 100 })
+  @Column({
+    type: 'varchar',
+    nullable: false,
+    name: 'shipping_city',
+    length: 100,
+  })
   shippingCity: string;
 
-  @Column({ type: 'varchar', nullable: false, name: 'shipping_state', length: 100 })
+  @Column({
+    type: 'varchar',
+    nullable: false,
+    name: 'shipping_state',
+    length: 100,
+  })
   shippingState: string;
 
-  @Column({ type: 'varchar', nullable: false, name: 'shipping_zip_code', length: 20 })
+  @Column({
+    type: 'varchar',
+    nullable: false,
+    name: 'shipping_zip_code',
+    length: 20,
+  })
   shippingZipCode: string;
 
-  @Column({ type: 'varchar', nullable: false, name: 'shipping_country', length: 100 })
+  @Column({
+    type: 'varchar',
+    nullable: false,
+    name: 'shipping_country',
+    length: 100,
+  })
   shippingCountry: string;
 
   // Order totals
@@ -129,20 +205,45 @@ export class Order extends BaseEntity {
   status: OrderStatus;
 
   // Payment information
-  @Column({ type: 'varchar', nullable: true, name: 'payment_method', length: 50 })
+  @Column({
+    type: 'varchar',
+    nullable: true,
+    name: 'payment_method',
+    length: 50,
+  })
   paymentMethod: string | null;
 
-  @Column({ type: 'varchar', nullable: true, name: 'payment_status', length: 50 })
+  @Column({
+    type: 'varchar',
+    nullable: true,
+    name: 'payment_status',
+    length: 50,
+  })
   paymentStatus: string | null;
 
-  @Column({ type: 'varchar', nullable: true, name: 'transaction_id', length: 255 })
+  @Column({
+    type: 'varchar',
+    nullable: true,
+    name: 'transaction_id',
+    length: 255,
+  })
   transactionId: string | null;
 
   // Shipping information
-  @Column({ type: 'varchar', nullable: true, name: 'tracking_number', length: 255 })
+  @Column({
+    type: 'varchar',
+    nullable: true,
+    name: 'tracking_number',
+    length: 255,
+  })
   trackingNumber: string | null;
 
-  @Column({ type: 'varchar', nullable: true, name: 'shipping_carrier', length: 100 })
+  @Column({
+    type: 'varchar',
+    nullable: true,
+    name: 'shipping_carrier',
+    length: 100,
+  })
   shippingCarrier: string | null;
 
   @Column({ type: 'timestamp', nullable: true, name: 'shipped_at' })
@@ -162,4 +263,3 @@ export class Order extends BaseEntity {
   @OneToMany(() => OrderItem, (orderItem) => orderItem.order, { cascade: true })
   orderItems: OrderItem[];
 }
-

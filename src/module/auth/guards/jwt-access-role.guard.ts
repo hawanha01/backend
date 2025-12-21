@@ -37,9 +37,6 @@ export class JwtAccessRoleGuard implements CanActivate {
         secret: accessSecret,
       });
 
-      // Get role from header
-      const headerRole = request.headers['x-role'] as string;
-
       if (!payload.sub) {
         throw new BadRequestException('User ID not found in token');
       }
@@ -74,4 +71,3 @@ export class JwtAccessRoleGuard implements CanActivate {
     return type === 'Bearer' ? token : undefined;
   }
 }
-

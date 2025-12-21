@@ -7,10 +7,10 @@ import AppDataSource from '../../config/typeOrm.config';
 
 /**
  * Permission Seeder
- * 
+ *
  * This seeder populates the permissions table with all permission codes
  * and their allowed actions from the permission mapping configuration.
- * 
+ *
  * IMPORTANT: Only this seeder should insert/update permissions.
  * The permissions table should not be manually edited.
  */
@@ -27,9 +27,10 @@ export class PermissionSeeder {
   private generatePermissionName(code: PermissionCode): string {
     const codeStr = code.toString();
     const [resource, action] = codeStr.split('.');
-    
+
     // Capitalize and format
-    const resourceName = resource.charAt(0).toUpperCase() + resource.slice(1).replace(/_/g, ' ');
+    const resourceName =
+      resource.charAt(0).toUpperCase() + resource.slice(1).replace(/_/g, ' ');
     const actionName = action
       .split('_')
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -42,7 +43,9 @@ export class PermissionSeeder {
    * Get primary action from allowed actions
    * Priority: MANAGE > specific action > first action
    */
-  private getPrimaryAction(allowedActions: PermissionAction[]): PermissionAction {
+  private getPrimaryAction(
+    allowedActions: PermissionAction[],
+  ): PermissionAction {
     if (allowedActions.includes(PermissionAction.MANAGE)) {
       return PermissionAction.MANAGE;
     }
@@ -72,7 +75,9 @@ export class PermissionSeeder {
       const permissionRepository = this.dataSource.getRepository(Permission);
 
       // Get all permission codes from the mapping
-      const permissionCodes = Object.keys(PERMISSION_CODE_ACTION_MAPPING) as PermissionCode[];
+      const permissionCodes = Object.keys(
+        PERMISSION_CODE_ACTION_MAPPING,
+      ) as PermissionCode[];
 
       console.log(`\n🌱 Seeding ${permissionCodes.length} permissions...\n`);
 
@@ -83,7 +88,7 @@ export class PermissionSeeder {
         const allowedActions = PERMISSION_CODE_ACTION_MAPPING[code];
         const primaryAction = this.getPrimaryAction(allowedActions);
         const name = this.generatePermissionName(code);
-        const resource = this.extractResource(code);
+        this.extractResource(code); // Extract resource for potential future use
 
         // Check if permission already exists (unique constraint on code + action)
         const existingPermission = await permissionRepository.findOne({
@@ -96,7 +101,9 @@ export class PermissionSeeder {
           existingPermission.allowedActions = allowedActions;
           await permissionRepository.save(existingPermission);
           updated++;
-          console.log(`  ↻ Updated: ${code} (${name}) - Actions: [${allowedActions.join(', ')}]`);
+          console.log(
+            `  ↻ Updated: ${code} (${name}) - Actions: [${allowedActions.join(', ')}]`,
+          );
         } else {
           // Create new permission
           const permission = permissionRepository.create({
@@ -108,7 +115,9 @@ export class PermissionSeeder {
 
           await permissionRepository.save(permission);
           created++;
-          console.log(`  ✨ Created: ${code} (${name}) - Actions: [${allowedActions.join(', ')}]`);
+          console.log(
+            `  ✨ Created: ${code} (${name}) - Actions: [${allowedActions.join(', ')}]`,
+          );
         }
       }
 
@@ -166,4 +175,3 @@ if (require.main === module) {
       process.exit(1);
     });
 }
-

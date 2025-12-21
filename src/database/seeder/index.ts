@@ -1,6 +1,6 @@
 /**
  * Seeder Index
- * 
+ *
  * Exports all available seeders for easy importing
  */
 
@@ -10,4 +10,3 @@ export { AdminSeeder } from './admin.seeder';
 // Add more seeders here as they are created
 // export { UserSeeder } from './user.seeder';
 // export { StoreSeeder } from './store.seeder';
-

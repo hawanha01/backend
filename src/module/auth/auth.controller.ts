@@ -83,7 +83,7 @@ export class AuthController {
     description: 'Invalid or expired refresh token',
   })
   async refresh(@Req() req: Request): Promise<LoginResponseDto> {
-    const user = (req.user as User);
+    const user = req.user as User;
     return this.authService.refreshToken(user);
   }
 }

@@ -46,7 +46,12 @@ export class Store extends BaseEntity {
   @Column({ type: 'varchar', length: 100, nullable: false, name: 'country' })
   country: string;
 
-  @Column({ type: 'varchar', nullable: false, name: 'phone_number', length: 20 })
+  @Column({
+    type: 'varchar',
+    nullable: false,
+    name: 'phone_number',
+    length: 20,
+  })
   phoneNumber: string;
 
   @Column({ type: 'varchar', nullable: false, name: 'email', length: 255 })

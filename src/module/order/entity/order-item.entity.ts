@@ -23,7 +23,12 @@ export class OrderItem extends BaseEntity {
   product: Product;
 
   // Product details at time of order (snapshot)
-  @Column({ type: 'varchar', nullable: false, name: 'product_name', length: 255 })
+  @Column({
+    type: 'varchar',
+    nullable: false,
+    name: 'product_name',
+    length: 255,
+  })
   productName: string;
 
   @Column({ type: 'varchar', nullable: true, name: 'product_sku', length: 100 })
@@ -86,10 +91,13 @@ export class OrderItem extends BaseEntity {
   calculateTotals() {
     // Calculate subtotal: quantity * (discountedPrice if available, otherwise unitPrice)
     const priceToUse = this.discountedPrice || this.unitPrice;
-    this.subtotal = Number((Number(this.quantity) * Number(priceToUse)).toFixed(2));
+    this.subtotal = Number(
+      (Number(this.quantity) * Number(priceToUse)).toFixed(2),
+    );
 
     // Calculate total: subtotal + taxAmount
-    this.total = Number((Number(this.subtotal) + Number(this.taxAmount || 0)).toFixed(2));
+    this.total = Number(
+      (Number(this.subtotal) + Number(this.taxAmount || 0)).toFixed(2),
+    );
   }
 }
-

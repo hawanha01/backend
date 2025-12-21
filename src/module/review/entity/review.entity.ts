@@ -10,10 +10,20 @@ import { Rating } from '../enum/rating.enum';
 @Index(['rating'])
 @Index(['isApproved'])
 export class Review extends BaseEntity {
-  @Column({ type: 'varchar', nullable: true, name: 'reviewer_name', length: 255 })
+  @Column({
+    type: 'varchar',
+    nullable: true,
+    name: 'reviewer_name',
+    length: 255,
+  })
   reviewerName: string | null;
 
-  @Column({ type: 'varchar', nullable: true, name: 'reviewer_email', length: 255 })
+  @Column({
+    type: 'varchar',
+    nullable: true,
+    name: 'reviewer_email',
+    length: 255,
+  })
   reviewerEmail: string | null;
 
   @Column({
@@ -30,25 +40,45 @@ export class Review extends BaseEntity {
   @Column({ type: 'text', nullable: true, name: 'comment' })
   comment: string | null;
 
-  @Column({ type: 'boolean', nullable: false, default: false, name: 'is_approved' })
+  @Column({
+    type: 'boolean',
+    nullable: false,
+    default: false,
+    name: 'is_approved',
+  })
   isApproved: boolean;
 
-  @Column({ type: 'boolean', nullable: false, default: false, name: 'is_verified_purchase' })
+  @Column({
+    type: 'boolean',
+    nullable: false,
+    default: false,
+    name: 'is_verified_purchase',
+  })
   isVerifiedPurchase: boolean;
 
   @Column({ type: 'int', nullable: false, default: 0, name: 'helpful_count' })
   helpfulCount: number;
 
-  @Column({ type: 'int', nullable: false, default: 0, name: 'not_helpful_count' })
+  @Column({
+    type: 'int',
+    nullable: false,
+    default: 0,
+    name: 'not_helpful_count',
+  })
   notHelpfulCount: number;
 
   // Review can be for either a Store or a Product
-  @ManyToOne(() => Store, (store) => store.reviews, { onDelete: 'CASCADE', nullable: true })
+  @ManyToOne(() => Store, (store) => store.reviews, {
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
   @JoinColumn({ name: 'store_id' })
   store: Store | null;
 
-  @ManyToOne(() => Product, (product) => product.reviews, { onDelete: 'CASCADE', nullable: true })
+  @ManyToOne(() => Product, (product) => product.reviews, {
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
   @JoinColumn({ name: 'product_id' })
   product: Product | null;
 }
-

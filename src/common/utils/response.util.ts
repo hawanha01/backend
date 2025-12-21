@@ -1,4 +1,4 @@
-import { ApiResponse } from '../interfaces/paginated-response.interface'
+import { ApiResponse } from '../interfaces/paginated-response.interface';
 
 export function createResponse<T>(
   data: T,
@@ -9,6 +9,5 @@ export function createResponse<T>(
     data,
     message,
     status,
-  }
+  };
 }
-

@@ -73,10 +73,20 @@ export class Product extends BaseEntity {
   @Column({ type: 'int', nullable: true, name: 'low_stock_threshold' })
   lowStockThreshold: number | null;
 
-  @Column({ type: 'boolean', nullable: false, default: false, name: 'is_featured' })
+  @Column({
+    type: 'boolean',
+    nullable: false,
+    default: false,
+    name: 'is_featured',
+  })
   isFeatured: boolean;
 
-  @Column({ type: 'boolean', nullable: false, default: false, name: 'is_digital' })
+  @Column({
+    type: 'boolean',
+    nullable: false,
+    default: false,
+    name: 'is_digital',
+  })
   isDigital: boolean;
 
   @Column({ type: 'int', nullable: false, default: 0, name: 'total_sales' })
@@ -130,11 +140,13 @@ export class Product extends BaseEntity {
       this.discountPercentage <= 100 &&
       this.price
     ) {
-      const discountAmount = (Number(this.price) * Number(this.discountPercentage)) / 100;
-      this.discountedPrice = Number((Number(this.price) - discountAmount).toFixed(2));
+      const discountAmount =
+        (Number(this.price) * Number(this.discountPercentage)) / 100;
+      this.discountedPrice = Number(
+        (Number(this.price) - discountAmount).toFixed(2),
+      );
     } else {
       this.discountedPrice = null;
     }
   }
 }
-

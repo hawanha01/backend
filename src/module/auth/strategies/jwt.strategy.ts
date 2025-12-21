@@ -20,9 +20,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
   ) {
-    const secret = config.jwt.accessSecret;
+    const secret: string = config.jwt.accessSecret;
     if (!secret) {
-      throw new Error('JWT_ACCESS_SECRET is not defined in environment variables');
+      throw new Error(
+        'JWT_ACCESS_SECRET is not defined in environment variables',
+      );
     }
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -47,4 +49,3 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     return user;
   }
 }
-

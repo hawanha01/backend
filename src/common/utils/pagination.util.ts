@@ -1,4 +1,4 @@
-import { PaginatedResponse, PaginationMeta } from '../interfaces/paginated-response.interface'
+import { PaginatedResponse } from '../interfaces/paginated-response.interface';
 
 export function createPaginatedResponse<T>(
   data: T[],
@@ -16,6 +16,5 @@ export function createPaginatedResponse<T>(
     },
     message: 'Success',
     status: 200,
-  }
+  };
 }
-

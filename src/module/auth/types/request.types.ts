@@ -8,8 +8,10 @@ export interface AuthenticatedRequest extends ExpressRequest {
   refreshTokenPayload?: JwtPayload;
 }
 
-// Global namespace extension for Express Request
+// Global interface extension for Express Request
+
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       user?: User;
@@ -17,4 +19,3 @@ declare global {
     }
   }
 }
-

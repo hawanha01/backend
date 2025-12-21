@@ -5,7 +5,7 @@ import { PermissionCode } from '../enum/permission-code.enum';
 import { PermissionAction } from '../enum/permission-action.enum';
 
 @Entity('permissions')
-@Index(['code','action'], { unique: true })
+@Index(['code', 'action'], { unique: true })
 export class Permission extends BaseEntity {
   @Column({ type: 'varchar', nullable: false, name: 'name', length: 255 })
   name: string;

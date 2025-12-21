@@ -20,19 +20,22 @@ import './types/request.types';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: () => {
-        const accessSecret = config.jwt.accessSecret;
-        const accessExpiresIn = config.jwt.accessExpiresIn;
+        const accessSecret: string = config.jwt.accessSecret;
+        const accessExpiresIn: string = config.jwt.accessExpiresIn;
 
         if (!accessSecret) {
-          throw new Error('JWT_ACCESS_SECRET is not defined in environment variables');
+          throw new Error(
+            'JWT_ACCESS_SECRET is not defined in environment variables',
+          );
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return {
           secret: accessSecret,
           signOptions: {
             expiresIn: accessExpiresIn,
-          } as any,
-        };
+          },
+        } as any; // Type assertion needed due to StringValue type mismatch
       },
     }),
     TypeOrmModule.forFeature([User]),
@@ -55,4 +58,3 @@ import './types/request.types';
   ],
 })
 export class AuthModule {}
-

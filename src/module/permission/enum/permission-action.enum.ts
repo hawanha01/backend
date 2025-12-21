@@ -12,4 +12,3 @@ export enum PermissionAction {
   SETTINGS = 'settings',
   ANALYTICS = 'analytics',
 }
-

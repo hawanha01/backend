@@ -57,7 +57,7 @@ export class JwtRefreshGuard implements CanActivate {
       }
 
       request.user = user;
-      
+
       return true;
     } catch (error) {
       if (error instanceof UnauthorizedException) {
@@ -74,7 +74,9 @@ export class JwtRefreshGuard implements CanActivate {
   }
 
   private extractTokenFromBody(request: Request): string | undefined {
-    return request.body?.refreshToken || request.body?.refresh_token;
+    const body = request.body as
+      | { refreshToken?: string; refresh_token?: string }
+      | undefined;
+    return body?.refreshToken || body?.refresh_token;
   }
 }
-

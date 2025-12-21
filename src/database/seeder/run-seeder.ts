@@ -3,7 +3,7 @@ import { AdminSeeder } from './admin.seeder';
 
 /**
  * General Seeder Runner
- * 
+ *
  * Usage:
  *   npm run seeder                    - Run all seeders
  *   npm run seeder permissions        - Run permission seeder
@@ -128,15 +128,18 @@ function listSeeders(): void {
 
 // Main execution
 const command = process.argv[2];
-const subCommand = process.argv[3];
 
 if (command === 'list' || command === '--help' || command === '-h') {
   listSeeders();
   console.log('Usage:');
   console.log('  npm run seeder                    - Run all seeders');
   console.log('  npm run seeder <name>             - Run specific seeder');
-  console.log('  npm run seeder <name>:clear       - Clear specific seeder data');
-  console.log('  npm run seeder list               - List all available seeders');
+  console.log(
+    '  npm run seeder <name>:clear       - Clear specific seeder data',
+  );
+  console.log(
+    '  npm run seeder list               - List all available seeders',
+  );
   console.log('');
   process.exit(0);
 } else if (command && command.includes(':')) {

@@ -38,6 +38,10 @@ export class UserStore extends BaseEntity {
   })
   role: Role;
 
-  @OneToMany(() => UserStorePermission, (userStorePermission) => userStorePermission.userStore, { cascade: true })
+  @OneToMany(
+    () => UserStorePermission,
+    (userStorePermission) => userStorePermission.userStore,
+    { cascade: true },
+  )
   userStorePermissions: UserStorePermission[];
 }

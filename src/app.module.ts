@@ -8,7 +8,6 @@ import { AuthModule } from './module/auth/auth.module';
 import { envValidationSchema } from './config/env.validation';
 import { LoggerModule } from 'nestjs-pino';
 
-
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -31,13 +30,23 @@ import { LoggerModule } from 'nestjs-pino';
               },
             },
             serializers: {
-              req: (req) => ({
+              req: (req: {
+                method?: string;
+                url?: string;
+                headers?: unknown;
+                body?: unknown;
+              }) => ({
                 method: req.method,
                 url: req.url,
                 headers: req.headers,
                 body: req.body,
               }),
-              res: (res) => ({
+              res: (res: {
+                statusCode?: number;
+                getHeaders?: () => unknown;
+                _header?: unknown;
+                raw?: { body?: unknown };
+              }) => ({
                 statusCode: res.statusCode,
                 headers: res.getHeaders ? res.getHeaders() : res._header,
                 body: res.raw?.body,

@@ -5,4 +5,3 @@ export enum Rating {
   FOUR_STARS = 4,
   FIVE_STARS = 5,
 }
-

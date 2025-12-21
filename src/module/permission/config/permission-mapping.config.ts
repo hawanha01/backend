@@ -5,7 +5,10 @@ import { PermissionAction } from '../enum/permission-action.enum';
  * Maps permission codes to their allowed actions
  * This defines which actions are valid for each permission code
  */
-export const PERMISSION_CODE_ACTION_MAPPING: Record<PermissionCode, PermissionAction[]> = {
+export const PERMISSION_CODE_ACTION_MAPPING: Record<
+  PermissionCode,
+  PermissionAction[]
+> = {
   // Admin permissions
   [PermissionCode.ADMIN_MANAGE]: [
     PermissionAction.READ,
@@ -21,7 +24,10 @@ export const PERMISSION_CODE_ACTION_MAPPING: Record<PermissionCode, PermissionAc
     PermissionAction.DELETE,
     PermissionAction.MANAGE,
   ],
-  [PermissionCode.ADMIN_VIEW_ALL_STORES]: [PermissionAction.READ, PermissionAction.VIEW],
+  [PermissionCode.ADMIN_VIEW_ALL_STORES]: [
+    PermissionAction.READ,
+    PermissionAction.VIEW,
+  ],
   [PermissionCode.ADMIN_MANAGE_SYSTEM]: [
     PermissionAction.READ,
     PermissionAction.UPDATE,
@@ -65,8 +71,16 @@ export const PERMISSION_CODE_ACTION_MAPPING: Record<PermissionCode, PermissionAc
     PermissionAction.ANALYTICS,
     PermissionAction.MANAGE,
   ],
-  [PermissionCode.STORE_SETTINGS]: [PermissionAction.READ, PermissionAction.UPDATE, PermissionAction.SETTINGS],
-  [PermissionCode.STORE_ANALYTICS]: [PermissionAction.READ, PermissionAction.VIEW, PermissionAction.ANALYTICS],
+  [PermissionCode.STORE_SETTINGS]: [
+    PermissionAction.READ,
+    PermissionAction.UPDATE,
+    PermissionAction.SETTINGS,
+  ],
+  [PermissionCode.STORE_ANALYTICS]: [
+    PermissionAction.READ,
+    PermissionAction.VIEW,
+    PermissionAction.ANALYTICS,
+  ],
 
   // User permissions
   [PermissionCode.USERS_MANAGE]: [
@@ -96,7 +110,10 @@ export const PERMISSION_CODE_ACTION_MAPPING: Record<PermissionCode, PermissionAc
     PermissionAction.UPDATE,
     PermissionAction.MANAGE,
   ],
-  [PermissionCode.INVENTORY_UPDATE]: [PermissionAction.READ, PermissionAction.UPDATE],
+  [PermissionCode.INVENTORY_UPDATE]: [
+    PermissionAction.READ,
+    PermissionAction.UPDATE,
+  ],
 
   // Payment permissions
   [PermissionCode.PAYMENTS_MANAGE]: [
@@ -104,24 +121,36 @@ export const PERMISSION_CODE_ACTION_MAPPING: Record<PermissionCode, PermissionAc
     PermissionAction.VIEW,
     PermissionAction.MANAGE,
   ],
-  [PermissionCode.PAYMENTS_VIEW]: [PermissionAction.READ, PermissionAction.VIEW],
+  [PermissionCode.PAYMENTS_VIEW]: [
+    PermissionAction.READ,
+    PermissionAction.VIEW,
+  ],
 
   // Reports permissions
   [PermissionCode.REPORTS_VIEW]: [PermissionAction.READ, PermissionAction.VIEW],
-  [PermissionCode.REPORTS_EXPORT]: [PermissionAction.READ, PermissionAction.VIEW, PermissionAction.EXPORT],
+  [PermissionCode.REPORTS_EXPORT]: [
+    PermissionAction.READ,
+    PermissionAction.VIEW,
+    PermissionAction.EXPORT,
+  ],
 };
 
 /**
  * Get allowed actions for a specific permission code
  */
-export function getAllowedActionsForCode(code: PermissionCode): PermissionAction[] {
+export function getAllowedActionsForCode(
+  code: PermissionCode,
+): PermissionAction[] {
   return PERMISSION_CODE_ACTION_MAPPING[code] || [];
 }
 
 /**
  * Check if a specific action is allowed for a permission code
  */
-export function isActionAllowedForCode(code: PermissionCode, action: PermissionAction): boolean {
+export function isActionAllowedForCode(
+  code: PermissionCode,
+  action: PermissionAction,
+): boolean {
   const allowedActions = getAllowedActionsForCode(code);
   return allowedActions.includes(action);
 }
@@ -134,4 +163,3 @@ export function getCodesByResource(resource: string): PermissionCode[] {
     code.startsWith(resource.toLowerCase()),
   ) as PermissionCode[];
 }
-

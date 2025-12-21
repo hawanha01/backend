@@ -49,4 +49,3 @@ export enum PermissionCode {
   REPORTS_VIEW = 'reports.view',
   REPORTS_EXPORT = 'reports.export',
 }
-
