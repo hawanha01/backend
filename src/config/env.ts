@@ -32,5 +32,19 @@ export const config = {
     lastName: value.ADMIN_LAST_NAME,
     phone: value.ADMIN_PHONE,
   },
+  rateLimit: {
+    windowMs: value.RATE_LIMIT_WINDOW_MS,
+    maxRequests: value.RATE_LIMIT_MAX_REQUESTS,
+  },
+  cors: {
+    origin: value.CORS_ORIGIN,
+    credentials: value.CORS_CREDENTIALS,
+  },
+  jwt: {
+    accessSecret: value.JWT_ACCESS_SECRET,
+    refreshSecret: value.JWT_REFRESH_SECRET,
+    accessExpiresIn: value.JWT_ACCESS_EXPIRES_IN,
+    refreshExpiresIn: value.JWT_REFRESH_EXPIRES_IN,
+  },
 };
 
