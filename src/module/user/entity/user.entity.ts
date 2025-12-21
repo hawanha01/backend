@@ -42,7 +42,7 @@ export class User extends BaseEntity {
     nullable: true,
     name: 'refresh_token',
   })
-  refreshToken: string;
+  refreshToken: string | null;
 
   @Column({
     type: 'varchar',
