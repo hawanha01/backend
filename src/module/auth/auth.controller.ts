@@ -1,7 +1,6 @@
 import {
   Controller,
   Post,
-  Body,
   Headers,
   HttpCode,
   HttpStatus,
@@ -22,6 +21,8 @@ import { LoginResponseDto } from './dto/login-response.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { Public } from './decorators/public.decorator';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { LocalAuthGuard } from './guards/local-auth.guard';
 import { User } from '../user/entity/user.entity';
 
 @ApiTags('auth')
@@ -31,6 +32,7 @@ export class AuthController {
 
   @Post('login')
   @Public()
+  @UseGuards(LocalAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'User login',
@@ -57,10 +59,11 @@ export class AuthController {
     description: 'Bad request - role mismatch or validation error',
   })
   async login(
-    @Body() loginDto: LoginDto,
+    @Req() req: Request,
     @Headers('x-role') role?: string,
   ): Promise<LoginResponseDto> {
-    return this.authService.login(loginDto, role);
+    const user = req.user as User;
+    return this.authService.login(user, role);
   }
 
   @Post('refresh')
@@ -85,5 +88,26 @@ export class AuthController {
   async refresh(@Req() req: Request): Promise<LoginResponseDto> {
     const user = req.user as User;
     return this.authService.refreshToken(user);
+  }
+
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'User logout',
+    description: 'Logout user and invalidate refresh token',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Logout successful',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - invalid or missing token',
+  })
+  async logout(@Req() req: Request): Promise<{ message: string }> {
+    const user = req.user as User;
+    await this.authService.logout(user);
+    return { message: 'Logout successful' };
   }
 }
