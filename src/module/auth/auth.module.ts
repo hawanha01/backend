@@ -6,8 +6,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { LocalStrategy } from './strategies/local.strategy';
 import { JwtAccessRoleGuard } from './guards/jwt-access-role.guard';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
+import { LocalAuthGuard } from './guards/local-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { User } from '../user/entity/user.entity';
 import { config } from '../../config/env';
@@ -44,8 +46,10 @@ import './types/request.types';
   providers: [
     AuthService,
     JwtStrategy,
+    LocalStrategy,
     JwtAccessRoleGuard,
     JwtRefreshGuard,
+    LocalAuthGuard,
     RolesGuard,
   ],
   exports: [

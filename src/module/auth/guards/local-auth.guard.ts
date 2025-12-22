@@ -5,25 +5,18 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 @Injectable()
-export class JwtAuthGuard extends AuthGuard('jwt') {
+export class LocalAuthGuard extends AuthGuard('local') {
   constructor(private readonly reflector: Reflector) {
     super();
   }
 
-  canActivate(context: ExecutionContext) {
-    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-
-    if (isPublic) {
-      return true;
-    }
-
-    return super.canActivate(context);
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    // For LocalAuthGuard, we always want to run authentication
+    // (even for public endpoints like login, we need to validate credentials)
+    // So we don't check for @Public() here - authentication is required
+    return super.canActivate(context) as Promise<boolean>;
   }
 
   handleRequest<TUser = any>(
@@ -38,7 +31,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       throw err;
     }
     if (!user) {
-      throw new UnauthorizedException('Authentication required');
+      throw new UnauthorizedException('Invalid email or password');
     }
     return user as TUser;
   }

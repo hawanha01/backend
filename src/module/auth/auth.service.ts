@@ -1,15 +1,14 @@
 import {
   Injectable,
-  UnauthorizedException,
   BadRequestException,
+  InternalServerErrorException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
-import * as argon2 from 'argon2';
 import * as jwt from 'jsonwebtoken';
 import { User } from '../user/entity/user.entity';
-import { LoginDto } from './dto/login.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
 import { JwtPayload } from './strategies/jwt.strategy';
 import { config } from '../../config/env';
@@ -22,28 +21,11 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async login(loginDto: LoginDto, role?: string): Promise<LoginResponseDto> {
-    const { email, password } = loginDto;
-
-    // Find user by email
-    const user = await this.userRepository.findOne({
-      where: { email },
-    });
+  async login(user: User, role?: string): Promise<LoginResponseDto> {
+    // User is already validated by LocalStrategy (password verified, user exists, not deleted)
 
     if (!user) {
-      throw new UnauthorizedException('Invalid email or password');
-    }
-
-    // Verify password
-    const isPasswordValid = await argon2.verify(user.password, password);
-
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid email or password');
-    }
-
-    // Check if user is deleted
-    if (user.isDeleted) {
-      throw new UnauthorizedException('User account is deleted');
+      throw new UnauthorizedException('User not found');
     }
 
     // If role is provided in headers, validate it matches user's role
@@ -69,7 +51,7 @@ export class AuthService {
     const refreshExpiresIn = config.jwt.refreshExpiresIn || '7d';
 
     if (!accessSecret || !refreshSecret) {
-      throw new Error('JWT secrets are not configured');
+      throw new InternalServerErrorException('JWT secrets are not configured');
     }
 
     // Generate access token using JwtService (expiresIn handled in module config)
@@ -92,6 +74,10 @@ export class AuthService {
   }
 
   async refreshToken(user: User): Promise<LoginResponseDto> {
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
     // Generate new tokens
     const payload: JwtPayload = {
       sub: user.id,
@@ -103,7 +89,9 @@ export class AuthService {
     const refreshExpiresIn = config.jwt.refreshExpiresIn || '7d';
 
     if (!refreshSecret) {
-      throw new Error('JWT_REFRESH_SECRET is not configured');
+      throw new InternalServerErrorException(
+        'JWT_REFRESH_SECRET is not configured',
+      );
     }
 
     // Generate new access token
@@ -123,5 +111,15 @@ export class AuthService {
       refreshToken,
       userId: user.id,
     };
+  }
+
+  async logout(user: User): Promise<void> {
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Clear refresh token from database
+    user.refreshToken = null;
+    await this.userRepository.save(user);
   }
 }

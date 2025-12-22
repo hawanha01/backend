@@ -3,6 +3,8 @@ import {
   CanActivate,
   ExecutionContext,
   UnauthorizedException,
+  InternalServerErrorException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -32,7 +34,9 @@ export class JwtRefreshGuard implements CanActivate {
     try {
       const refreshSecret = config.jwt.refreshSecret;
       if (!refreshSecret) {
-        throw new Error('JWT_REFRESH_SECRET is not configured');
+        throw new InternalServerErrorException(
+          'JWT_REFRESH_SECRET is not configured',
+        );
       }
 
       // Verify refresh token
@@ -63,12 +67,23 @@ export class JwtRefreshGuard implements CanActivate {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
+      if (error instanceof InternalServerErrorException) {
+        throw error;
+      }
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       if (error instanceof jwt.JsonWebTokenError) {
         throw new UnauthorizedException('Invalid refresh token');
       }
       if (error instanceof jwt.TokenExpiredError) {
         throw new UnauthorizedException('Refresh token expired');
       }
+      if (error instanceof jwt.NotBeforeError) {
+        throw new UnauthorizedException('Refresh token not yet valid');
+      }
+      // Log unexpected errors for debugging
+      console.error('Unexpected error in JwtRefreshGuard:', error);
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
   }

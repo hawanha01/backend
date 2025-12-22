@@ -4,6 +4,7 @@ import {
   ExecutionContext,
   UnauthorizedException,
   BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
@@ -30,7 +31,9 @@ export class JwtAccessRoleGuard implements CanActivate {
     try {
       const accessSecret = config.jwt.accessSecret;
       if (!accessSecret) {
-        throw new Error('JWT_ACCESS_SECRET is not configured');
+        throw new InternalServerErrorException(
+          'JWT_ACCESS_SECRET is not configured',
+        );
       }
 
       const payload = this.jwtService.verify<JwtPayload>(token, {
@@ -62,6 +65,14 @@ export class JwtAccessRoleGuard implements CanActivate {
       if (error instanceof BadRequestException) {
         throw error;
       }
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      if (error instanceof InternalServerErrorException) {
+        throw error;
+      }
+      // Log unexpected errors for debugging
+      console.error('Unexpected error in JwtAccessRoleGuard:', error);
       throw new UnauthorizedException('Invalid or expired access token');
     }
   }
