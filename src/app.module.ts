@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './module/auth/auth.module';
+import { StoreOwnerModule } from './module/admin/store_owner/store-owner.module';
 import { envValidationSchema } from './config/env.validation';
 import { LoggerModule } from 'nestjs-pino';
 
@@ -59,6 +60,7 @@ import { LoggerModule } from 'nestjs-pino';
     DatabaseModule,
     CommonModule,
     AuthModule,
+    StoreOwnerModule,
   ],
   controllers: [AppController],
   providers: [AppService],
