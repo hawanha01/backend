@@ -5,6 +5,8 @@ import { StoreOwnerService } from './store-owner.service';
 import { User } from '../../user/entity/user.entity';
 import { CreateStoreOwnerDto } from './dto/create-store-owner.dto';
 import { Role } from '../../user/enum/role.enum';
+import { EmailQueue } from '../../queue/queues/email/email.queue';
+import { AuthService } from '../../auth/auth.service';
 import * as argon2 from 'argon2';
 
 // Mock argon2
@@ -53,13 +55,41 @@ describe('StoreOwnerService', () => {
     save: jest.fn(),
   };
 
+  const mockEmailQueue = {
+    addStoreOwnerWelcomeEmail: jest.fn(),
+  };
+
+  const mockAuthService = {
+    generateEmailVerificationToken: jest.fn(),
+  };
+
   beforeEach(async () => {
+    // Set up environment variables for config
+    process.env.BREVO_API_KEY = 'test-brevo-key';
+    process.env.BREVO_SENDER_EMAIL = 'test@example.com';
+    process.env.BREVO_SENDER_NAME = 'Test Sender';
+    process.env.JWT_EMAIL_VERIFICATION_SECRET =
+      'test-email-verification-secret';
+    process.env.JWT_EMAIL_VERIFICATION_EXPIRES_IN = '24h';
+    process.env.FRONTEND_URL = 'http://localhost:5173';
+    process.env.REDIS_HOST = 'localhost';
+    process.env.REDIS_PORT = '6379';
+    process.env.REDIS_DB = '0';
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         StoreOwnerService,
         {
           provide: getRepositoryToken(User),
           useValue: mockRepository,
+        },
+        {
+          provide: EmailQueue,
+          useValue: mockEmailQueue,
+        },
+        {
+          provide: AuthService,
+          useValue: mockAuthService,
         },
       ],
     }).compile();
@@ -68,6 +98,10 @@ describe('StoreOwnerService', () => {
 
     // Set up default mocks
     (argon2.hash as jest.Mock).mockResolvedValue('hashedPassword123');
+    mockAuthService.generateEmailVerificationToken.mockReturnValue(
+      'mock-verification-token',
+    );
+    mockEmailQueue.addStoreOwnerWelcomeEmail.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -284,6 +318,63 @@ describe('StoreOwnerService', () => {
           lastName: mockCreateDto.lastName,
         }),
       );
+    });
+
+    // ✅ Positive test case - Adds welcome email job to queue after user creation
+    it('should add welcome email job to queue after creating store owner', async () => {
+      mockRepository.findOne.mockResolvedValue(null);
+      mockRepository.create.mockReturnValue(mockUser);
+      mockRepository.save.mockResolvedValue(mockUser);
+
+      await service.createStoreOwner(mockCreateDto);
+
+      expect(
+        mockAuthService.generateEmailVerificationToken,
+      ).toHaveBeenCalledWith(mockUser);
+      expect(mockEmailQueue.addStoreOwnerWelcomeEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: mockCreateDto.email,
+          firstName: mockCreateDto.firstName,
+          lastName: mockCreateDto.lastName,
+          password: expect.any(String) as string,
+          verificationLink: expect.stringContaining(
+            'http://localhost:5173/verify-email?token=',
+          ) as string,
+        }),
+      );
+    });
+
+    // ✅ Positive test case - Email verification token is generated
+    it('should generate email verification token for new user', async () => {
+      mockRepository.findOne.mockResolvedValue(null);
+      mockRepository.create.mockReturnValue(mockUser);
+      mockRepository.save.mockResolvedValue(mockUser);
+
+      await service.createStoreOwner(mockCreateDto);
+
+      expect(
+        mockAuthService.generateEmailVerificationToken,
+      ).toHaveBeenCalledWith(mockUser);
+      expect(
+        mockAuthService.generateEmailVerificationToken,
+      ).toHaveBeenCalledTimes(1);
+    });
+
+    // ✅ Edge case - Queue failure does not prevent user creation
+    it('should create user even if email queue fails', async () => {
+      mockRepository.findOne.mockResolvedValue(null);
+      mockRepository.create.mockReturnValue(mockUser);
+      mockRepository.save.mockResolvedValue(mockUser);
+      mockEmailQueue.addStoreOwnerWelcomeEmail.mockRejectedValue(
+        new Error('Queue service unavailable'),
+      );
+
+      const result = await service.createStoreOwner(mockCreateDto);
+
+      expect(result).toBeDefined();
+      expect(result.id).toBe(mockUser.id);
+      expect(result.email).toBe(mockCreateDto.email);
+      expect(mockRepository.save).toHaveBeenCalled();
     });
   });
 });

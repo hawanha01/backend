@@ -7,9 +7,11 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
+import { EmailVerificationStrategy } from './strategies/email-verification.strategy';
 import { JwtAccessRoleGuard } from './guards/jwt-access-role.guard';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { LocalAuthGuard } from './guards/local-auth.guard';
+import { EmailVerificationGuard } from './guards/email-verification.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { User } from '../user/entity/user.entity';
 import { config } from '../../config/env';
@@ -47,9 +49,11 @@ import './types/request.types';
     AuthService,
     JwtStrategy,
     LocalStrategy,
+    EmailVerificationStrategy,
     JwtAccessRoleGuard,
     JwtRefreshGuard,
     LocalAuthGuard,
+    EmailVerificationGuard,
     RolesGuard,
   ],
   exports: [

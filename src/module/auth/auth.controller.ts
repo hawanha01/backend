@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Get,
   Headers,
   HttpCode,
   HttpStatus,
@@ -14,6 +15,7 @@ import {
   ApiResponse,
   ApiHeader,
   ApiBody,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -23,6 +25,7 @@ import { Public } from './decorators/public.decorator';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { LocalAuthGuard } from './guards/local-auth.guard';
+import { EmailVerificationGuard } from './guards/email-verification.guard';
 import { User } from '../user/entity/user.entity';
 
 @ApiTags('auth')
@@ -109,5 +112,44 @@ export class AuthController {
     const user = req.user as User;
     await this.authService.logout(user);
     return { message: 'Logout successful' };
+  }
+
+  @Get('verify-email')
+  @Public()
+  @UseGuards(EmailVerificationGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Verify email address',
+    description:
+      'Verify user email address using token from email verification link',
+  })
+  @ApiQuery({
+    name: 'token',
+    description: 'Email verification token from email link',
+    required: true,
+    type: String,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Email verified successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Email verified successfully' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - email already verified',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - invalid or expired token',
+  })
+  async verifyEmail(@Req() req: Request): Promise<{ message: string }> {
+    const user = req.user as User;
+    await this.authService.verifyEmail(user);
+    return { message: 'Email verified successfully' };
   }
 }

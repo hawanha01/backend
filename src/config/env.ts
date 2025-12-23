@@ -37,6 +37,16 @@ interface ValidatedEnv {
   JWT_REFRESH_SECRET: string;
   JWT_ACCESS_EXPIRES_IN: string;
   JWT_REFRESH_EXPIRES_IN: string;
+  JWT_EMAIL_VERIFICATION_SECRET: string;
+  JWT_EMAIL_VERIFICATION_EXPIRES_IN: string;
+  BREVO_API_KEY: string;
+  BREVO_SENDER_EMAIL: string;
+  BREVO_SENDER_NAME: string;
+  FRONTEND_URL: string;
+  REDIS_HOST: string;
+  REDIS_PORT: number;
+  REDIS_PASSWORD?: string;
+  REDIS_DB: number;
 }
 
 const validatedValue = value as ValidatedEnv;
@@ -72,5 +82,20 @@ export const config = {
     refreshSecret: validatedValue.JWT_REFRESH_SECRET,
     accessExpiresIn: validatedValue.JWT_ACCESS_EXPIRES_IN,
     refreshExpiresIn: validatedValue.JWT_REFRESH_EXPIRES_IN,
+    emailVerificationSecret: validatedValue.JWT_EMAIL_VERIFICATION_SECRET,
+    emailVerificationExpiresIn:
+      validatedValue.JWT_EMAIL_VERIFICATION_EXPIRES_IN,
+  },
+  brevo: {
+    apiKey: validatedValue.BREVO_API_KEY,
+    senderEmail: validatedValue.BREVO_SENDER_EMAIL,
+    senderName: validatedValue.BREVO_SENDER_NAME,
+  },
+  frontend: {
+    url: validatedValue.FRONTEND_URL,
+  },
+  redis: {
+    host: validatedValue.REDIS_HOST,
+    port: validatedValue.REDIS_PORT,
   },
 };

@@ -122,4 +122,49 @@ export class AuthService {
     user.refreshToken = null;
     await this.userRepository.save(user);
   }
+
+  /**
+   * Generate email verification token
+   */
+  generateEmailVerificationToken(user: User): string {
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const emailVerificationSecret = config.jwt.emailVerificationSecret;
+    const emailVerificationExpiresIn =
+      config.jwt.emailVerificationExpiresIn || '24h';
+
+    if (!emailVerificationSecret) {
+      throw new InternalServerErrorException(
+        'JWT_EMAIL_VERIFICATION_SECRET is not configured',
+      );
+    }
+
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      type: 'email_verification',
+    };
+
+    return jwt.sign(payload, emailVerificationSecret, {
+      expiresIn: emailVerificationExpiresIn,
+    } as jwt.SignOptions);
+  }
+
+  /**
+   * Verify email address
+   */
+  async verifyEmail(user: User): Promise<void> {
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    if (user.isEmailVerified) {
+      throw new BadRequestException('Email is already verified');
+    }
+
+    user.isEmailVerified = true;
+    await this.userRepository.save(user);
+  }
 }

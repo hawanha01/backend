@@ -27,4 +27,14 @@ export const envValidationSchema = Joi.object({
   JWT_REFRESH_SECRET: Joi.string().required(),
   JWT_ACCESS_EXPIRES_IN: Joi.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
+  JWT_EMAIL_VERIFICATION_SECRET: Joi.string().required(),
+  JWT_EMAIL_VERIFICATION_EXPIRES_IN: Joi.string().default('24h'),
+  // Brevo Email
+  BREVO_API_KEY: Joi.string().required(),
+  BREVO_SENDER_EMAIL: Joi.string().email().required(),
+  BREVO_SENDER_NAME: Joi.string().default('Admin'),
+  FRONTEND_URL: Joi.string().uri().required(),
+  // Redis (for BullMQ)
+  REDIS_HOST: Joi.string().default('localhost'),
+  REDIS_PORT: Joi.number().default(6379),
 });
