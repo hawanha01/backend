@@ -3,7 +3,6 @@ import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
 import { User } from '../user/entity/user.entity';
 import { Role } from '../user/enum/role.enum';
@@ -91,19 +90,18 @@ describe('AuthController', () => {
   });
 
   describe('login', () => {
-    const loginDto: LoginDto = {
-      email: 'test@example.com',
-      password: 'password123',
-    };
+    const mockRequest = {
+      user: mockUser,
+    } as unknown as Request;
 
     // ✅ Positive test case - Successful login
     it('should login successfully and return tokens', async () => {
       mockAuthService.login.mockResolvedValue(mockLoginResponse);
 
-      const result = await controller.login(loginDto);
+      const result = await controller.login(mockRequest);
 
       expect(result).toEqual(mockLoginResponse);
-      expect(mockAuthService.login).toHaveBeenCalledWith(loginDto, undefined);
+      expect(mockAuthService.login).toHaveBeenCalledWith(mockUser, undefined);
       expect(result.accessToken).toBeDefined();
       expect(result.refreshToken).toBeDefined();
       expect(result.userId).toBe(mockUser.id);
@@ -113,36 +111,34 @@ describe('AuthController', () => {
     it('should login successfully when role header matches user role', async () => {
       mockAuthService.login.mockResolvedValue(mockLoginResponse);
 
-      const result = await controller.login(loginDto, Role.ADMIN);
+      const result = await controller.login(mockRequest, Role.ADMIN);
 
       expect(result).toEqual(mockLoginResponse);
-      expect(mockAuthService.login).toHaveBeenCalledWith(loginDto, Role.ADMIN);
+      expect(mockAuthService.login).toHaveBeenCalledWith(mockUser, Role.ADMIN);
     });
 
     // ✅ Negative test case - Invalid credentials (user not found)
     it('should throw UnauthorizedException when user not found', async () => {
+      const requestWithoutUser = {
+        user: null,
+      } as unknown as Request;
+
       mockAuthService.login.mockRejectedValue(
         new UnauthorizedException('Invalid email or password'),
       );
 
-      await expect(controller.login(loginDto)).rejects.toThrow(
+      await expect(controller.login(requestWithoutUser)).rejects.toThrow(
         UnauthorizedException,
       );
-      expect(mockAuthService.login).toHaveBeenCalledWith(loginDto, undefined);
     });
 
     // ✅ Negative test case - Invalid password
     it('should throw UnauthorizedException when password is incorrect', async () => {
-      const invalidLoginDto: LoginDto = {
-        email: 'test@example.com',
-        password: 'wrongpassword',
-      };
-
       mockAuthService.login.mockRejectedValue(
         new UnauthorizedException('Invalid email or password'),
       );
 
-      await expect(controller.login(invalidLoginDto)).rejects.toThrow(
+      await expect(controller.login(mockRequest)).rejects.toThrow(
         UnauthorizedException,
       );
     });
@@ -156,10 +152,10 @@ describe('AuthController', () => {
       );
 
       await expect(
-        controller.login(loginDto, Role.STORE_OWNER),
+        controller.login(mockRequest, Role.STORE_OWNER),
       ).rejects.toThrow(BadRequestException);
       expect(mockAuthService.login).toHaveBeenCalledWith(
-        loginDto,
+        mockUser,
         Role.STORE_OWNER,
       );
     });
@@ -170,7 +166,7 @@ describe('AuthController', () => {
         new UnauthorizedException('User account is deleted'),
       );
 
-      await expect(controller.login(loginDto)).rejects.toThrow(
+      await expect(controller.login(mockRequest)).rejects.toThrow(
         UnauthorizedException,
       );
     });

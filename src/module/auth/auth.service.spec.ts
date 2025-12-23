@@ -4,9 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { User } from '../user/entity/user.entity';
-import { LoginDto } from './dto/login.dto';
 import { Role } from '../user/enum/role.enum';
-import * as argon2 from 'argon2';
 import * as jwt from 'jsonwebtoken';
 import { config } from '../../config/env';
 
@@ -81,102 +79,57 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
-    const loginDto: LoginDto = {
-      email: 'test@example.com',
-      password: 'password123',
-    };
-
     // ✅ Positive test case - Successful login
     it('should login successfully and return tokens', async () => {
-      mockRepository.findOne.mockResolvedValue(mockUser);
-      (argon2.verify as jest.Mock).mockResolvedValue(true);
       mockRepository.save.mockResolvedValue(mockUser);
 
-      const result = await service.login(loginDto);
+      const result = await service.login(mockUser);
 
       expect(result).toHaveProperty('accessToken');
       expect(result).toHaveProperty('refreshToken');
       expect(result).toHaveProperty('userId');
       expect(result.userId).toBe(mockUser.id);
-      expect(mockRepository.findOne).toHaveBeenCalledWith({
-        where: { email: loginDto.email },
-      });
-      expect(argon2.verify).toHaveBeenCalledWith(
-        mockUser.password,
-        loginDto.password,
-      );
       expect(mockRepository.save).toHaveBeenCalledTimes(2); // Once for lastLoginAt, once for refreshToken
     });
 
     // ✅ Positive test case - Successful login with role validation
     it('should login successfully when role matches', async () => {
-      mockRepository.findOne.mockResolvedValue(mockUser);
-      (argon2.verify as jest.Mock).mockResolvedValue(true);
       mockRepository.save.mockResolvedValue(mockUser);
 
-      const result = await service.login(loginDto, Role.ADMIN);
+      const result = await service.login(mockUser, Role.ADMIN);
 
       expect(result).toHaveProperty('accessToken');
       expect(result).toHaveProperty('refreshToken');
-      expect(mockRepository.findOne).toHaveBeenCalled();
     });
 
     // ✅ Negative test case - User not found
-    it('should throw UnauthorizedException when user not found', async () => {
-      mockRepository.findOne.mockResolvedValue(null);
-
-      await expect(service.login(loginDto)).rejects.toThrow(
+    it('should throw UnauthorizedException when user is null', async () => {
+      await expect(service.login(null as unknown as User)).rejects.toThrow(
         UnauthorizedException,
       );
-      await expect(service.login(loginDto)).rejects.toThrow(
-        'Invalid email or password',
-      );
-      expect(mockRepository.findOne).toHaveBeenCalledWith({
-        where: { email: loginDto.email },
-      });
-      expect(argon2.verify).not.toHaveBeenCalled();
-    });
-
-    // ✅ Negative test case - Invalid password
-    it('should throw UnauthorizedException when password is incorrect', async () => {
-      mockRepository.findOne.mockResolvedValue(mockUser);
-      (argon2.verify as jest.Mock).mockResolvedValue(false);
-
-      await expect(service.login(loginDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
-      await expect(service.login(loginDto)).rejects.toThrow(
-        'Invalid email or password',
-      );
-      expect(argon2.verify).toHaveBeenCalledWith(
-        mockUser.password,
-        loginDto.password,
+      await expect(service.login(null as unknown as User)).rejects.toThrow(
+        'User not found',
       );
     });
 
-    // ✅ Negative test case - Deleted user
-    it('should throw UnauthorizedException when user account is deleted', async () => {
-      const deletedUser = { ...mockUser, isDeleted: true };
-      mockRepository.findOne.mockResolvedValue(deletedUser);
-      (argon2.verify as jest.Mock).mockResolvedValue(true);
-
-      await expect(service.login(loginDto)).rejects.toThrow(
+    // ✅ Negative test case - User is undefined
+    it('should throw UnauthorizedException when user is undefined', async () => {
+      await expect(service.login(undefined as unknown as User)).rejects.toThrow(
         UnauthorizedException,
       );
-      await expect(service.login(loginDto)).rejects.toThrow(
-        'User account is deleted',
+      await expect(service.login(undefined as unknown as User)).rejects.toThrow(
+        'User not found',
       );
     });
 
     // ✅ Negative test case - Role mismatch
     it('should throw BadRequestException when role does not match', async () => {
-      mockRepository.findOne.mockResolvedValue(mockUser);
-      (argon2.verify as jest.Mock).mockResolvedValue(true);
+      mockRepository.save.mockResolvedValue(mockUser);
 
-      await expect(service.login(loginDto, Role.STORE_OWNER)).rejects.toThrow(
+      await expect(service.login(mockUser, Role.STORE_OWNER)).rejects.toThrow(
         BadRequestException,
       );
-      await expect(service.login(loginDto, Role.STORE_OWNER)).rejects.toThrow(
+      await expect(service.login(mockUser, Role.STORE_OWNER)).rejects.toThrow(
         'User role mismatch',
       );
     });
@@ -192,10 +145,9 @@ describe('AuthService', () => {
         writable: true,
       });
 
-      mockRepository.findOne.mockResolvedValue(mockUser);
-      (argon2.verify as jest.Mock).mockResolvedValue(true);
+      mockRepository.save.mockResolvedValue(mockUser);
 
-      await expect(service.login(loginDto)).rejects.toThrow(
+      await expect(service.login(mockUser)).rejects.toThrow(
         'JWT secrets are not configured',
       );
 
@@ -212,11 +164,9 @@ describe('AuthService', () => {
 
     // ✅ Edge case - Updates lastLoginAt timestamp
     it('should update lastLoginAt timestamp on successful login', async () => {
-      mockRepository.findOne.mockResolvedValue(mockUser);
-      (argon2.verify as jest.Mock).mockResolvedValue(true);
       mockRepository.save.mockResolvedValue(mockUser);
 
-      await service.login(loginDto);
+      await service.login(mockUser);
 
       expect(mockRepository.save).toHaveBeenCalled();
       const saveCalls = mockRepository.save.mock.calls as Array<[User]>;
