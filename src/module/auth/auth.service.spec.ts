@@ -1,7 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
-import { UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  UnauthorizedException,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { User } from '../user/entity/user.entity';
 import { Role } from '../user/enum/role.enum';
@@ -253,6 +257,166 @@ describe('AuthService', () => {
           email: mockUser.email,
           role: mockUser.role,
         }),
+      );
+    });
+  });
+
+  describe('generateEmailVerificationToken', () => {
+    // ✅ Positive test case - Generate token successfully
+    it('should generate email verification token successfully', () => {
+      const mockToken = 'mock-email-verification-token';
+      (jwt.sign as jest.Mock).mockReturnValue(mockToken);
+
+      const result = service.generateEmailVerificationToken(mockUser);
+
+      expect(result).toBe(mockToken);
+      expect(jwt.sign).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sub: mockUser.id,
+          email: mockUser.email,
+          type: 'email_verification',
+        }),
+        config.jwt.emailVerificationSecret,
+        expect.objectContaining({
+          expiresIn: config.jwt.emailVerificationExpiresIn || '24h',
+        }),
+      );
+    });
+
+    // ✅ Positive test case - Token contains correct payload
+    it('should generate token with correct payload structure', () => {
+      const mockToken = 'mock-email-verification-token';
+      (jwt.sign as jest.Mock).mockReturnValue(mockToken);
+
+      service.generateEmailVerificationToken(mockUser);
+
+      expect(jwt.sign).toHaveBeenCalledWith(
+        {
+          sub: mockUser.id,
+          email: mockUser.email,
+          type: 'email_verification',
+        },
+        config.jwt.emailVerificationSecret,
+        expect.any(Object),
+      );
+    });
+
+    // ✅ Negative test case - User is null
+    it('should throw UnauthorizedException when user is null', () => {
+      expect(() => {
+        service.generateEmailVerificationToken(null as unknown as User);
+      }).toThrow(UnauthorizedException);
+      expect(() => {
+        service.generateEmailVerificationToken(null as unknown as User);
+      }).toThrow('User not found');
+    });
+
+    // ✅ Negative test case - Missing email verification secret
+    it('should throw InternalServerErrorException when JWT_EMAIL_VERIFICATION_SECRET is not configured', () => {
+      const originalSecret: string = config.jwt.emailVerificationSecret;
+
+      // Temporarily set secret to undefined
+      Object.defineProperty(config.jwt, 'emailVerificationSecret', {
+        value: undefined as string | undefined,
+        writable: true,
+      });
+
+      expect(() => {
+        service.generateEmailVerificationToken(mockUser);
+      }).toThrow(InternalServerErrorException);
+      expect(() => {
+        service.generateEmailVerificationToken(mockUser);
+      }).toThrow('JWT_EMAIL_VERIFICATION_SECRET is not configured');
+
+      // Restore original value
+      Object.defineProperty(config.jwt, 'emailVerificationSecret', {
+        value: originalSecret,
+        writable: true,
+      });
+    });
+  });
+
+  describe('verifyEmail', () => {
+    const unverifiedUser = {
+      ...mockUser,
+      isEmailVerified: false,
+    } as unknown as User;
+
+    // ✅ Positive test case - Verify email successfully
+    it('should verify email successfully', async () => {
+      const verifiedUser = {
+        ...unverifiedUser,
+        isEmailVerified: true,
+      };
+      mockRepository.save.mockResolvedValue(verifiedUser);
+
+      await service.verifyEmail(unverifiedUser);
+
+      expect(mockRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isEmailVerified: true,
+        }),
+      );
+    });
+
+    // ✅ Positive test case - Sets isEmailVerified to true
+    it('should set isEmailVerified to true', async () => {
+      const unverifiedUserCopy = {
+        ...mockUser,
+        isEmailVerified: false,
+      } as unknown as User;
+
+      const verifiedUser = {
+        ...unverifiedUserCopy,
+        isEmailVerified: true,
+      };
+      mockRepository.save.mockResolvedValue(verifiedUser);
+
+      await service.verifyEmail(unverifiedUserCopy);
+
+      expect(mockRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isEmailVerified: true,
+        }),
+      );
+      expect(unverifiedUserCopy.isEmailVerified).toBe(true);
+    });
+
+    // ✅ Negative test case - User is null
+    it('should throw UnauthorizedException when user is null', async () => {
+      await expect(
+        service.verifyEmail(null as unknown as User),
+      ).rejects.toThrow(UnauthorizedException);
+      await expect(
+        service.verifyEmail(null as unknown as User),
+      ).rejects.toThrow('User not found');
+      expect(mockRepository.save).not.toHaveBeenCalled();
+    });
+
+    // ✅ Negative test case - Email already verified
+    it('should throw BadRequestException when email is already verified', async () => {
+      await expect(service.verifyEmail(mockUser)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.verifyEmail(mockUser)).rejects.toThrow(
+        'Email is already verified',
+      );
+      expect(mockRepository.save).not.toHaveBeenCalled();
+    });
+
+    // ✅ Negative test case - Database error
+    it('should propagate database errors', async () => {
+      const unverifiedUserForError = {
+        ...mockUser,
+        isEmailVerified: false,
+      } as unknown as User;
+
+      mockRepository.save.mockRejectedValue(
+        new Error('Database connection failed'),
+      );
+
+      await expect(service.verifyEmail(unverifiedUserForError)).rejects.toThrow(
+        'Database connection failed',
       );
     });
   });

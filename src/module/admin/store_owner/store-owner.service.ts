@@ -2,6 +2,7 @@ import {
   Injectable,
   ConflictException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -10,12 +11,19 @@ import { User } from '../../user/entity/user.entity';
 import { Role } from '../../user/enum/role.enum';
 import { CreateStoreOwnerDto } from './dto/create-store-owner.dto';
 import { CreateStoreOwnerResponseDto } from './dto/create-store-owner-response.dto';
+import { AuthService } from '../../auth/auth.service';
+import { EmailQueue } from '../../queue/queues/email/email.queue';
+import { config } from '../../../config/env';
 
 @Injectable()
 export class StoreOwnerService {
+  private readonly logger = new Logger(StoreOwnerService.name);
+
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly emailQueue: EmailQueue,
+    private readonly authService: AuthService,
   ) {}
 
   /**
@@ -99,6 +107,31 @@ export class StoreOwnerService {
 
     // Save user
     const savedUser = await this.userRepository.save(user);
+
+    // Generate email verification token
+    const verificationToken =
+      this.authService.generateEmailVerificationToken(savedUser);
+    const verificationLink = `${config.frontend.url}/verify-email?token=${verificationToken}`;
+
+    // Add welcome email to queue
+    try {
+      await this.emailQueue.addStoreOwnerWelcomeEmail({
+        email: savedUser.email,
+        firstName: savedUser.firstName,
+        lastName: savedUser.lastName,
+        password: password,
+        verificationLink: verificationLink,
+      });
+      this.logger.log(
+        `Welcome email job added to queue for ${savedUser.email}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to add welcome email job to queue for ${savedUser.email}:`,
+        error,
+      );
+      // Don't throw error - user is created, email queue failure is logged
+    }
 
     // Prepare response
     const response: CreateStoreOwnerResponseDto = {

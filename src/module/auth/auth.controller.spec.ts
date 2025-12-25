@@ -7,6 +7,7 @@ import { LoginResponseDto } from './dto/login-response.dto';
 import { User } from '../user/entity/user.entity';
 import { Role } from '../user/enum/role.enum';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
+import { EmailVerificationGuard } from './guards/email-verification.guard';
 import { JwtService } from '@nestjs/jwt';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
@@ -16,6 +17,7 @@ describe('AuthController', () => {
   const mockAuthService = {
     login: jest.fn(),
     refreshToken: jest.fn(),
+    verifyEmail: jest.fn(),
   };
 
   const mockUser = {
@@ -47,6 +49,15 @@ describe('AuthController', () => {
   };
 
   beforeEach(async () => {
+    // Mock environment variables before importing modules that use config
+    process.env.BREVO_API_KEY = 'test-brevo-key';
+    process.env.BREVO_SENDER_EMAIL = 'test@example.com';
+    process.env.BREVO_SENDER_NAME = 'Test Sender';
+    process.env.JWT_EMAIL_VERIFICATION_SECRET =
+      'test-email-verification-secret';
+    process.env.JWT_EMAIL_VERIFICATION_EXPIRES_IN = '24h';
+    process.env.FRONTEND_URL = 'http://localhost:5173';
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
@@ -56,6 +67,12 @@ describe('AuthController', () => {
         },
         {
           provide: JwtRefreshGuard,
+          useValue: {
+            canActivate: jest.fn(() => true),
+          },
+        },
+        {
+          provide: EmailVerificationGuard,
           useValue: {
             canActivate: jest.fn(() => true),
           },
@@ -77,6 +94,10 @@ describe('AuthController', () => {
       ],
     })
       .overrideGuard(JwtRefreshGuard)
+      .useValue({
+        canActivate: jest.fn(() => true),
+      })
+      .overrideGuard(EmailVerificationGuard)
       .useValue({
         canActivate: jest.fn(() => true),
       })
@@ -227,6 +248,63 @@ describe('AuthController', () => {
       );
 
       await expect(controller.refresh(requestWithDeletedUser)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+  });
+
+  describe('verifyEmail', () => {
+    const mockRequest = {
+      user: mockUser,
+    } as unknown as Request;
+
+    // ✅ Positive test case - Successful email verification
+    it('should verify email successfully', async () => {
+      mockAuthService.verifyEmail.mockResolvedValue(undefined);
+
+      const result = await controller.verifyEmail(mockRequest);
+
+      expect(result).toEqual({ message: 'Email verified successfully' });
+      expect(mockAuthService.verifyEmail).toHaveBeenCalledWith(mockUser);
+    });
+
+    // ✅ Negative test case - Email already verified
+    it('should throw BadRequestException when email is already verified', async () => {
+      mockAuthService.verifyEmail.mockRejectedValue(
+        new BadRequestException('Email is already verified'),
+      );
+
+      await expect(controller.verifyEmail(mockRequest)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(controller.verifyEmail(mockRequest)).rejects.toThrow(
+        'Email is already verified',
+      );
+      expect(mockAuthService.verifyEmail).toHaveBeenCalledWith(mockUser);
+    });
+
+    // ✅ Negative test case - User not found in request
+    it('should throw error when user is not found in request', async () => {
+      const invalidRequest = {
+        user: null,
+      } as unknown as Request;
+
+      mockAuthService.verifyEmail.mockRejectedValue(
+        new UnauthorizedException('User not found'),
+      );
+
+      await expect(controller.verifyEmail(invalidRequest)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    // ✅ Negative test case - Invalid or expired token
+    it('should throw UnauthorizedException when token is invalid or expired', async () => {
+      mockAuthService.verifyEmail.mockRejectedValue(
+        new UnauthorizedException('Invalid or expired verification token'),
+      );
+
+      await expect(controller.verifyEmail(mockRequest)).rejects.toThrow(
         UnauthorizedException,
       );
     });
