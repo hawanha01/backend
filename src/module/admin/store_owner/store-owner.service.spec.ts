@@ -338,7 +338,7 @@ describe('StoreOwnerService', () => {
           lastName: mockCreateDto.lastName,
           password: expect.any(String) as string,
           verificationLink: expect.stringContaining(
-            'http://localhost:5173/verify-email?token=',
+            '/verify-email?token=',
           ) as string,
         }),
       );

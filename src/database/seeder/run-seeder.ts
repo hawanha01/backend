@@ -29,6 +29,7 @@ const seeders: Record<string, SeederConfig> = {
     description: 'Seed default admin user',
   },
   // Add more seeders here as they are created
+  // Note: Email template seeders are in email-template/ folder and can be run individually
   // users: {
   //   name: 'users',
   //   seeder: new UserSeeder(),

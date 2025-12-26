@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { EmailService } from './services/email.service';
-import { StoreOwnerWelcomeEmailService } from './services/store-owner-welcome.email';
+import { EmailTemplate } from '../../email-template/entity/email-template.entity';
 
 @Module({
-  imports: [],
-  providers: [EmailService, StoreOwnerWelcomeEmailService],
-  exports: [EmailService, StoreOwnerWelcomeEmailService],
+  imports: [TypeOrmModule.forFeature([EmailTemplate])],
+  providers: [EmailService],
+  exports: [EmailService],
 })
 export class EmailModule {}

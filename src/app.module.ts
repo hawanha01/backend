@@ -8,6 +8,7 @@ import { AuthModule } from './module/auth/auth.module';
 import { StoreOwnerModule } from './module/admin/store_owner/store-owner.module';
 import { ThirdPartyModule } from './module/third-party/third-party.module';
 import { QueueModule } from './module/queue/queue.module';
+import { EmailTemplateModule } from './module/email-template/email-template.module';
 import { envValidationSchema } from './config/env.validation';
 import { LoggerModule } from 'nestjs-pino';
 
@@ -65,6 +66,7 @@ import { LoggerModule } from 'nestjs-pino';
     ThirdPartyModule,
     QueueModule,
     StoreOwnerModule,
+    EmailTemplateModule,
   ],
   controllers: [AppController],
   providers: [AppService],
